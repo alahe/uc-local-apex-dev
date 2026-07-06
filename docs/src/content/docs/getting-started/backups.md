@@ -5,8 +5,6 @@ sidebar:
   order: 4
 ---
 
-import { Aside } from "@astrojs/starlight/components";
-
 ### Backup All Users
 
 Create datapump dumps of all users, including APEX workspaces and applications:
@@ -33,7 +31,7 @@ Restore a previously created backup:
 local-26ai.sh import-backup movies
 ```
 
-<Aside type="note" title="Future Enhancements">
-  Currently this creates the user if it doesn't exist and imports the datapump
-  dump. I plan to enhance this to also import APEX workspaces and applications.
-</Aside>
+:::note[Future Enhancements]
+Currently this creates the user if it doesn't exist and imports the datapump
+dump. I plan to enhance this to also import APEX workspaces and applications.
+:::

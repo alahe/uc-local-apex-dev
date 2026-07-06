@@ -5,8 +5,6 @@ sidebar:
   order: 2
 ---
 
-import { Aside } from "@astrojs/starlight/components";
-
 Once your environment is set up, these are the most common tasks you'll perform during APEX development.
 
 ## Managing Containers
@@ -17,11 +15,11 @@ Once your environment is set up, these are the most common tasks you'll perform 
 # Stop database
 local-26ai.sh stop
 # You could also run this, but the script will gracefully stop the database
-# docker-compose stop
+# docker compose stop   (or: podman compose stop)
 
 local-26ai.sh start
 # Or
-# docker-compose start
+# docker compose start  (or: podman compose start)
 ```
 
 ## ORDS Configuration
@@ -32,7 +30,7 @@ The `ords-config` folder in the root directory contains ORDS configuration files
 
 ```bash
 # After modifying config files
-docker-compose restart ords
+docker compose restart ords-26ai   # or: podman compose restart ords-26ai
 ```
 
 ### SSL Configuration
@@ -41,7 +39,7 @@ Enable HTTPS for ORDS by creating self-signed certificates. On MacOS and Linux i
 
 ```bash
 sudo ./scripts/create-self-signed-certificates.sh
-docker-compose restart ords
+docker compose restart ords-26ai   # or: podman compose restart ords-26ai
 ```
 
 Access via: https://localhost:8443/ords (Port 8443 instead of 8181).
@@ -106,10 +104,10 @@ To prevent APEX workspace accounts from expiring in the future:
 ./scripts/disable-password-expiration.sh
 ```
 
-<Aside type="note">
-  Even with password expiration disabled, users may still be prompted to change
-  their password on their first login after a migration.
-</Aside>
+:::note
+Even with password expiration disabled, users may still be prompted to change
+their password on their first login after a migration.
+:::
 
 ## Workspace Import/Export
 
@@ -135,13 +133,31 @@ This script updates all export files in `./backups/import/` to remove problemati
 
 ## Complete Environment Reset
 
-### Delete All Data
+### Reset and Rebuild
 
-To start completely fresh (⚠️ **ALL DATA WILL BE LOST**):
+To tear down the entire environment and rebuild from scratch, use the reset script:
 
 ```bash
-docker-compose down
-docker volume rm oradata
+./local-26ai.sh dev/reset
+```
+
+This will:
+- Stop and remove all containers
+- Delete the Docker/Podman volume (all database data)
+- Remove generated files (`.env`, ORDS config, APEX install files)
+- Run `install.sh` to rebuild everything from zero
+
+The script preserves your git repository, `backups/`, `apex-patches/`, and SSL certificates. You will be prompted to confirm before anything is deleted.
+
+If you have APEX patches in the `apex-patches/` directory, they will be automatically applied during the rebuild.
+
+### Manual Reset
+
+If you prefer to reset manually without rebuilding:
+
+```bash
+docker compose down        # or: podman compose down
+docker volume rm oradata-26ai   # or: podman volume rm oradata-26ai
 rm .env
 ```
 

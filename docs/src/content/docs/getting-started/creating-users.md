@@ -5,8 +5,6 @@ sidebar:
   order: 3
 ---
 
-import { Aside } from "@astrojs/starlight/components";
-
 ## Create User and Workspace
 
 Create a new database schema and APEX workspace in one command:
@@ -25,11 +23,12 @@ This will:
 - Create an APEX workspace with convenient settings
 - Optimize workspace settings like session length, max emails and REST messages and password lifetime
 
-<Aside type="tip" title="Access Credentials">
-  You can access the workspace with: - **Username**: `ADMIN` or the schema name
-  (e.g., `MOVIES`) - **Password**: `Welcome_1` - **URL**:
-  http://localhost:8181/ords/apex
-</Aside>
+:::tip[Access Credentials]
+You can access the workspace with:
+- **Username**: `ADMIN` or the schema name (e.g., `MOVIES`)
+- **Password**: `Welcome_1`
+- **URL**: http://localhost:8181/ords/apex
+:::
 
 ### Create Schema Only
 
@@ -54,10 +53,10 @@ To skip the confirmation prompt (useful for automation), use the `-y` flag:
 local-26ai.sh clear-schema movies -y
 ```
 
-<Aside type="caution" title="Data Loss Warning">
-  This drops ALL objects in the schema. Never run this accidentally on important
-  schemas! Or better: run backups regularly.
-</Aside>
+:::caution[Data Loss Warning]
+This drops ALL objects in the schema. Never run this accidentally on important
+schemas! Or better: run backups regularly.
+:::
 
 ### Drop a Schema
 

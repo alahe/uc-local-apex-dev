@@ -31,23 +31,38 @@ banner "Preflight checks"
 
 MISSING=()
 
-for cmd in docker sql unzip; do
+for cmd in sql unzip; do
   if ! command -v "$cmd" &>/dev/null; then
     MISSING+=("$cmd")
   fi
 done
 
+# Detect container CLI (prefer docker, fall back to podman).
+if [ -n "${CONTAINER_CLI:-}" ]; then
+  : # already set by user — respect it
+elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
+  CONTAINER_CLI="docker"
+elif command -v podman &>/dev/null; then
+  CONTAINER_CLI="podman"
+else
+  MISSING+=("docker or podman")
+fi
+
 if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
   MISSING+=("curl or wget")
 fi
 
-# Prefer docker compose v2 plugin, fall back to standalone v1.
-if docker compose version &>/dev/null 2>&1; then
-  DOCKER_COMPOSE="docker compose"
-elif command -v docker-compose &>/dev/null; then
-  DOCKER_COMPOSE="docker-compose"
-else
-  MISSING+=("docker compose (v2 plugin or v1 standalone)")
+# Detect compose command (prefer native subcommand, fall back to standalone)
+if [ -n "${CONTAINER_CLI:-}" ]; then
+  if $CONTAINER_CLI compose version &>/dev/null 2>&1; then
+    DOCKER_COMPOSE="$CONTAINER_CLI compose"
+  elif command -v docker-compose &>/dev/null; then
+    DOCKER_COMPOSE="docker-compose"
+  elif command -v podman-compose &>/dev/null; then
+    DOCKER_COMPOSE="podman-compose"
+  else
+    MISSING+=("compose command ($CONTAINER_CLI compose, docker-compose, or podman-compose)")
+  fi
 fi
 
 if [ ${#MISSING[@]} -gt 0 ]; then
@@ -58,6 +73,8 @@ if [ ${#MISSING[@]} -gt 0 ]; then
   exit 1
 fi
 
+export CONTAINER_CLI
+echo "Using container CLI: $CONTAINER_CLI"
 echo "Using compose command: $DOCKER_COMPOSE"
 
 # ---------------------------------------------------------------------------
@@ -172,7 +189,7 @@ fi
 # may pick `direct`. Setting it explicitly keeps the APEX URL working with
 # workspace-level proxy auth in all cases. The command is idempotent.
 banner "Configure ORDS plsql.gateway.mode = proxied"
-docker exec local-26ai-ords bash -c \
+$CONTAINER_CLI exec local-26ai-ords bash -c \
   "ords --config /etc/ords/config config --db-pool default set plsql.gateway.mode proxied"
 
 # ---------------------------------------------------------------------------
@@ -184,6 +201,16 @@ banner "Run after-first-db-start.sh (installs APEX, applies space optimizations)
 ./scripts/after-first-db-start.sh </dev/null
 
 # ---------------------------------------------------------------------------
+# 8b. Apply APEX patches if any are present in apex-patches/
+# ---------------------------------------------------------------------------
+if ls ./apex-patches/*.zip 1>/dev/null 2>&1; then
+  banner "Apply APEX patches from apex-patches/"
+  ./scripts/apply-patches.sh
+else
+  echo "No APEX patches found in apex-patches/ — skipping."
+fi
+
+# ---------------------------------------------------------------------------
 # 9. Restart ORDS so it picks up APEX + the config change
 # ---------------------------------------------------------------------------
 banner "Restart ORDS to pick up APEX module"
@@ -191,7 +218,7 @@ $DOCKER_COMPOSE restart ords-26ai
 # Wait for ORDS to come back so callers (and CI) can immediately use it.
 deadline=$((SECONDS + 180))
 while (( SECONDS < deadline )); do
-  if docker exec local-26ai-ords bash -c \
+  if $CONTAINER_CLI exec local-26ai-ords bash -c \
        "curl -fsS -o /dev/null -w '%{http_code}' http://localhost:8080/ords/" \
        2>/dev/null | grep -qE '^(200|30[0-9])$'; then
     echo "ORDS is back."
@@ -201,7 +228,15 @@ while (( SECONDS < deadline )); do
 done
 
 # ---------------------------------------------------------------------------
-# 10. Final summary
+# 10. Post-install configuration (optional)
+# ---------------------------------------------------------------------------
+if [ -f ./post-install.conf ]; then
+  banner "Post-install configuration"
+  ./scripts/post-install.sh
+fi
+
+# ---------------------------------------------------------------------------
+# 11. Final summary
 # ---------------------------------------------------------------------------
 banner "Done"
 cat <<EOF

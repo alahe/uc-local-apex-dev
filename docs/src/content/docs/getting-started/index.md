@@ -5,8 +5,6 @@ sidebar:
   order: 1
 ---
 
-import { Aside } from "@astrojs/starlight/components";
-
 Get your Oracle 26ai database with APEX and ORDS running locally in just a few minutes. This guide will walk you through the complete setup process.
 
 ## Prerequisites
@@ -15,12 +13,12 @@ Before you begin, make sure you have the following installed:
 
 ### Required Software
 
-- **Docker or Podman** (or any docker-compatible container runtime)
-- **docker-compose / podman-compose**
+- **Docker or Podman** — both are natively supported. The scripts auto-detect which engine is installed (preferring `docker` if both are present).
+- **Compose** — either `docker compose` (v2 plugin, or the legacy `docker-compose` v1) or the native `podman compose` subcommand.
 - **SQLcl** with "sql" command in PATH
 - **Bash-compatible shell**
 
-<Aside type="caution" title="Resource Requirements">
+:::caution[Resource Requirements]
 Make sure your virtual machine has enough resources allocated. **The default Podman VM will cause issues with Oracle**.
 
 Recommended minimum:
@@ -30,8 +28,7 @@ Recommended minimum:
 - **20GB disk space**
 
 [Learn more about Oracle container requirements](https://hartenfeller.dev/blog/oracle-23ai-container-wont-start-mac)
-
-</Aside>
+:::
 
 ### Platform-Specific Notes
 
@@ -70,20 +67,23 @@ chmod +x ./install.sh ./local-26ai.sh ./setup.sh ./scripts/*.sh
 
 `install.sh` is a one-shot installer that does the full bootstrap end-to-end:
 
-1. Checks that `docker`, `docker compose` (v2 or v1), `sql` (SQLcl), `unzip` and `curl`/`wget` are on your `PATH`.
-2. Runs `./setup.sh` to generate `.env` with a random Oracle SYS password (skipped if `.env` already exists and contains all required keys).
-3. Pulls the DB + ORDS container images.
-4. Starts the stack with `docker compose up -d`.
-5. Waits for the database to be ready (up to 25 min) and for ORDS to finish its first-boot install (up to 15 min).
-6. Sets the ORDS PL/SQL gateway mode to `proxied` (the recommended setting for APEX).
-7. Runs `./scripts/after-first-db-start.sh` non-interactively — installs APEX, applies dev-friendly defaults (disables archive logs, relaxes APEX password rules), and sets the APEX `INTERNAL`/`ADMIN` password to the same `ORACLE_PASSWORD` value from `.env`.
-8. Restarts the ORDS container so it picks up the new APEX module + config change, and waits for it to come back.
+1. Detects the container engine (`docker` or `podman`) and the compose command. You can force one with `CONTAINER_CLI=podman ./install.sh`.
+2. Checks that the compose command, `sql` (SQLcl), `unzip` and `curl`/`wget` are on your `PATH`.
+3. Runs `./setup.sh` to generate `.env` with a random Oracle SYS password (skipped if `.env` already exists and contains all required keys).
+4. Pulls the DB + ORDS container images.
+5. Starts the stack with compose.
+6. Waits for the database to be ready (up to 25 min) and for ORDS to finish its first-boot install (up to 15 min).
+7. Sets the ORDS PL/SQL gateway mode to `proxied` (the recommended setting for APEX).
+8. Runs `./scripts/after-first-db-start.sh` non-interactively — installs APEX, applies dev-friendly defaults (disables archive logs, relaxes APEX password rules), and sets the APEX `INTERNAL`/`ADMIN` password to the same `ORACLE_PASSWORD` value from `.env`.
+9. Applies any APEX Patch Set Bundles found in the `apex-patches/` directory (see [Upgrade APEX](/products/uc-local-apex-dev/docs/migrations/upgrade-apex/#apply-apex-patch-set-bundles)).
+10. Runs [post-install configuration](/products/uc-local-apex-dev/docs/getting-started/post-install/) if `post-install.conf` exists — creates workspaces, users, and ORDS connection pools.
+11. Restarts the ORDS container so it picks up the new APEX module + config change, and waits for it to come back.
 
 The whole flow takes roughly 15–20 minutes on a typical machine, mostly waiting on the Oracle DB to come up. When it finishes you'll see a `=== Done ===` banner with the next steps.
 
-<Aside type="tip" title="Re-running install.sh">
+:::tip[Re-running install.sh]
 `install.sh` is safe to re-run. If `.env` already exists and is complete, it's reused (no password rotation) and the readiness loops return immediately when the stack is already up.
-</Aside>
+:::
 
 ### 4. Log into APEX
 
@@ -124,9 +124,9 @@ local-26ai.sh backup-all
 local-26ai.sh stop
 ```
 
-<Aside type="tip" title="Script Help">
-  Run `local-26ai.sh --help` to see all available commands and options.
-</Aside>
+:::tip[Script Help]
+Run `local-26ai.sh --help` to see all available commands and options.
+:::
 
 ## Next Steps
 

@@ -56,3 +56,45 @@ cp -r ./apex/images ./apex-images
 ```
 
 If you get a popup error saying your files are outdated, you need to clear your browser cache.
+
+## Apply APEX Patch Set Bundles
+
+Patch Set Bundles (PSBs) are cumulative fixes published on [My Oracle Support](https://support.oracle.com) between APEX releases. They do not require a full APEX upgrade — they patch your existing version.
+
+### 1. Download the patch
+
+Look for the latest "Patch Set Bundle" for your APEX version on My Oracle Support (e.g., patch 39179920 for APEX 26.1).
+
+### 2. Place the ZIP in the `apex-patches/` directory
+
+```sh
+cp ~/Downloads/p39179920_2610_Generic.zip ./apex-patches/
+```
+
+### 3. Apply the patch
+
+```sh
+./local-26ai.sh apply-patches
+```
+
+The script will:
+- Skip any patches already installed (safe to re-run)
+- Apply new patches in the correct order (by patch number)
+- Copy updated static images to `apex-images/`
+
+### 4. Restart ORDS
+
+```sh
+./local-26ai.sh stop
+./local-26ai.sh start
+```
+
+### 5. Verify
+
+```sql
+-- In SQLcl or SQL Developer:
+SELECT patch_number, patch_version, installed_on FROM apex_patches ORDER BY installed_on;
+SELECT version_no, patch_applied FROM apex_release;
+```
+
+> **Automatic patching during install:** If you have patches in `apex-patches/` when running `install.sh` (or `dev/reset`), they are applied automatically after the APEX installation — no extra steps needed.
