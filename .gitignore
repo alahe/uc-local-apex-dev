@@ -14,3 +14,5 @@ META-INF/**/*
 apex-images
 install_*.log
 .fetch-client/
+apex-patches/*.zip
+post-install.conf

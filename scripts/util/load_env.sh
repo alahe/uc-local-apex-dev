@@ -24,10 +24,11 @@ sql() {
 }
 export -f sql
 
-# Detect container engine (honor a pre-set CONTAINER_CLI, else prefer docker, fall back to podman)
+# Detect container CLI (prefer docker, fall back to podman).
+# Can be overridden: CONTAINER_CLI=podman ./install.sh
 if [ -n "${CONTAINER_CLI:-}" ]; then
-  :
-elif command -v docker &>/dev/null; then
+  : # already set by user — respect it
+elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
   CONTAINER_CLI="docker"
 elif command -v podman &>/dev/null; then
   CONTAINER_CLI="podman"
@@ -35,16 +36,16 @@ else
   echo "Error: neither 'docker' nor 'podman' found"
   exit 1
 fi
+export CONTAINER_CLI
 
-# Detect its compose command. Use the native 'compose' subcommand; for docker keep the
-# legacy 'docker-compose' v1 fallback. Podman uses ONLY 'podman compose' (no podman-compose).
+# Detect compose command (prefer native subcommand, fall back to standalone)
 if $CONTAINER_CLI compose version &>/dev/null 2>&1; then
   DOCKER_COMPOSE="$CONTAINER_CLI compose"
-elif [ "$CONTAINER_CLI" = "docker" ] && command -v docker-compose &>/dev/null; then
+elif command -v docker-compose &>/dev/null; then
   DOCKER_COMPOSE="docker-compose"
+elif command -v podman-compose &>/dev/null; then
+  DOCKER_COMPOSE="podman-compose"
 else
-  echo "Error: no compose command found for '$CONTAINER_CLI' (podman needs the native 'podman compose' subcommand)"
+  echo "Error: no compose command found (tried: $CONTAINER_CLI compose, docker-compose, podman-compose)"
   exit 1
 fi
-
-export CONTAINER_CLI DOCKER_COMPOSE

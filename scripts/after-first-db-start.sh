@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# desc: Install APEX and apply dev-friendly DB defaults (run once after first DB start)
 
 set -e
 
@@ -12,10 +11,7 @@ for cmd in sql unzip; do
   fi
 done
 
-# A container engine (docker or podman) is required.
-if [ -z "${CONTAINER_CLI:-}" ] \
-   && ! command -v docker &>/dev/null \
-   && ! command -v podman &>/dev/null; then
+if ! command -v docker &>/dev/null && ! command -v podman &>/dev/null; then
   MISSING_CMDS+=("docker or podman")
 fi
 
@@ -109,8 +105,6 @@ if [ ! -f ./apex/apxchpwd.sql ]; then
   exit 1
 fi
 echo -e "ADMIN\nADMIN\n$ADMIN_PWD" | sql -name "$DB_CONN_NAME" @apex/apxchpwd.sql
-
-./scripts/disable-password-expiration.sh
 
 ./scripts/sync-backups-folder.sh
 

@@ -1,0 +1,28 @@
+# Post-install configuration
+# -------------------------
+# Copy this file to post-install.conf and customize.
+# Runs automatically at the end of install.sh and dev/reset.
+#
+# This file is excluded from Git (.gitignore) because it contains
+# environment-specific settings.
+
+# ---------------------------------------------------------------------------
+# Workspaces & Users
+# ---------------------------------------------------------------------------
+# Each name creates a database schema + APEX workspace via create-user.sh.
+# Existing users are skipped (safe to re-run).
+#
+# Format: USERS=("name1" "name2" ...)
+USERS=("demo")
+
+# ---------------------------------------------------------------------------
+# ORDS Connection Pools (optional)
+# ---------------------------------------------------------------------------
+# Additional ORDS database connections beyond the default pool.
+# After adding, they appear in ORDS REST admin and can be used for
+# multi-database setups.
+#
+# Format: ORDS_POOLS=("pool_name|db_host|db_port|db_service")
+# Example:
+# ORDS_POOLS=("reporting|26ai|1521|FREEPDB1")
+ORDS_POOLS=()
