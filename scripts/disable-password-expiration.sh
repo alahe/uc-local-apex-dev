@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+# desc: Stop database account passwords from expiring
 
 set -e
 
 source ./scripts/util/load_env.sh
 
 sql -name "$DB_CONN_NAME" <<SQL
+alter profile default limit password_life_time unlimited;
+
 declare
   l_username varchar2(100);
 begin
@@ -22,4 +25,4 @@ end;
 /
 SQL
 
-echo "Disabled password expiration for APEX workspace accounts."
+echo "Disabled password expiration for DB accounts (default profile) and APEX workspace accounts."

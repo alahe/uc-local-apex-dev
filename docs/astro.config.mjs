@@ -1,4 +1,5 @@
 // @ts-check
+import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightImageZoom from "starlight-image-zoom";
@@ -8,6 +9,12 @@ import starlightLinksValidator from "starlight-links-validator";
 export default defineConfig({
 	site: "https://united-codes.com/products/uc-local-apex-dev/docs",
 	base: "/products/uc-local-apex-dev/docs",
+	// starlight-image-zoom does not yet support Astro 7's default "Sätteri"
+	// Markdown processor, so opt back into the unified() processor.
+	// See https://github.com/HiDeoo/starlight-image-zoom/issues/63
+	markdown: {
+		processor: unified(),
+	},
 	integrations: [
 		starlight({
 			title: "uc-local-apex-dev",
@@ -48,15 +55,29 @@ export default defineConfig({
 				},
 				{
 					label: "Getting Started",
-					autogenerate: { directory: "getting-started" },
+					items: ["getting-started", "other/podman-on-mac"],
+				},
+				{
+					label: "Guides",
+					items: [
+						"getting-started/creating-users",
+						"getting-started/backups",
+						"getting-started/plsql-debugging",
+						"getting-started/install-apps-scripts",
+						"getting-started/common-tasks",
+					],
+				},
+				{
+					label: "Reference",
+					items: ["reference/commands"],
 				},
 				{
 					label: "Migrations",
-					autogenerate: { directory: "migrations" },
+					items: [{ autogenerate: { directory: "migrations" } }],
 				},
 				{
 					label: "Other",
-					autogenerate: { directory: "other" },
+					items: ["other/faq"],
 				},
 			],
 			customCss: ["./src/styles/uc.css"],

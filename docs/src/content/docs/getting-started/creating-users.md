@@ -24,10 +24,13 @@ This will:
 - Optimize workspace settings like session length, max emails and REST messages and password lifetime
 
 :::tip[Access Credentials]
-You can access the workspace with:
-- **Username**: `ADMIN` or the schema name (e.g., `MOVIES`)
-- **Password**: `Welcome_1`
-- **URL**: http://localhost:8181/ords/apex
+
+| Field | Value |
+|-------|-------|
+| URL | http://localhost:8181/ords/apex |
+| Username | `ADMIN` or the schema name (e.g., `MOVIES`) |
+| Password | `Welcome_1` |
+
 :::
 
 ### Create Schema Only
@@ -37,6 +40,20 @@ If you only need a database schema without an APEX workspace:
 ```bash
 local-26ai.sh create-user myschema --skip-workspace
 ```
+
+### Create a Compressed Schema
+
+Add `--compress` to enable [Advanced Compression](https://www.oracle.com/database/advanced-compression/) (included in Oracle Database Free) on the new schema's tablespace from the start. Every table and index created afterwards is stored compressed automatically — advanced row compression for tables, advanced index compression for B-tree indexes — keeping the schema's disk footprint smaller as it grows.
+
+```bash
+local-26ai.sh create-user movies --compress
+# Combine with other flags as needed:
+local-26ai.sh create-user myschema --skip-workspace --compress
+```
+
+<Aside type="tip" title="Already have data?">
+  `--compress` only sets the defaults for *new* segments, so it's meant for a fresh schema. To compress a schema that already contains data, use [`compress-space`](/products/uc-local-apex-dev/docs/getting-started/common-tasks/#compress-a-schemas-tablespace) instead.
+</Aside>
 
 ### Clear a Schema
 
@@ -60,11 +77,22 @@ schemas! Or better: run backups regularly.
 
 ### Drop a Schema
 
-Completely remove a schema and all its objects:
+Completely remove a schema and all its objects. This also drops the schema's dedicated tablespace and its datafile, so the disk space is reclaimed instead of being left behind as an orphan:
 
 ```bash
 local-26ai.sh drop-user movies
+# Asks for confirmation before proceeding
 ```
+
+To skip the confirmation prompt (useful for automation), use the `-y` flag:
+
+```bash
+local-26ai.sh drop-user movies -y
+```
+
+<Aside type="caution" title="Data Loss Warning">
+  This permanently removes the schema, all its objects, and its datafile. Make sure you have backups of anything you need.
+</Aside>
 
 ## Database Access
 
@@ -84,9 +112,12 @@ You will also find the connections in the VS Code SQL Developer extension. You m
 
 ### Other Development Tools
 
-Use these connection details for other development tools:
+Use these connection details for SQL Developer, DBeaver, or other tools:
 
-- **Host**: 26ai
-- **Port**: 1521
-- **Service**: FREEPDB1
-- **Username**: Your schema name
+| Field | Value |
+|-------|-------|
+| Host | `localhost` |
+| Port | `1521` |
+| Service | `FREEPDB1` |
+| Username | Your schema name (e.g., `MOVIES`) |
+| Password | Value of `<NAME>_USER_PASSWORD` from `.env` |

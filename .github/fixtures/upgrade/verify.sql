@@ -13,10 +13,19 @@ set define off
 set heading off feedback off pagesize 0 verify off trimspool on
 whenever sqlerror exit failure
 
--- DB version (informational; the workflow asserts the expected tag post-upgrade)
-select 'version_full=' || version_full
-  from product_component_version
- where product like 'Oracle Database%';
+-- DB version (informational; the workflow asserts the expected tag post-upgrade).
+-- Wrapped in a dual select so exactly one `version_full=` line is always emitted,
+-- even if the scalar subquery matches no row -- otherwise the workflow's
+-- `grep '^version_full='` finds nothing and aborts under `set -e`.
+-- `Oracle%Database%` matches both the old "Oracle Database ..." product name
+-- and the newer "Oracle AI Database ..." name (renamed in 26ai), which the
+-- narrower `Oracle Database%` missed -- leaving version_full empty.
+select 'version_full=' ||
+       (select version_full
+          from product_component_version
+         where product like 'Oracle%Database%'
+           and rownum = 1)
+  from dual;
 
 -- No object may be left INVALID by the upgrade
 select 'invalid=' || count(*)
@@ -45,5 +54,12 @@ select 'eng_pipe=' || count(*)
 
 -- Materialized view retains its rows
 select 'mv_rows=' || count(*) from mv_dept_salary;
+
+-- Advanced compression survives the upgrade: row count + storage attributes.
+-- compress_for/compression read identically before and after, so the workflow
+-- asserts the same values pre- and post-upgrade.
+select 'compressed_rows=' || count(*) from compressed_events;
+select 'compressed_tab=' || compress_for from user_tables  where table_name = 'COMPRESSED_EVENTS';
+select 'compressed_idx=' || compression  from user_indexes where index_name = 'IDX_COMP_EVENTS';
 
 exit
