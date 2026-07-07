@@ -5,8 +5,6 @@ sidebar:
   order: 2
 ---
 
-import { Aside } from "@astrojs/starlight/components";
-
 Once your environment is set up, these are the most common tasks you'll perform during APEX development.
 
 <Aside type="note" title="Docker or Podman">
@@ -140,10 +138,10 @@ To prevent APEX workspace accounts from expiring in the future:
 ./scripts/disable-password-expiration.sh
 ```
 
-<Aside type="note">
-  Even with password expiration disabled, users may still be prompted to change
-  their password on their first login after a migration.
-</Aside>
+:::note
+Even with password expiration disabled, users may still be prompted to change
+their password on their first login after a migration.
+:::
 
 ## Workspace Import/Export
 
@@ -169,9 +167,27 @@ This script updates all export files in `./backups/import/` to remove problemati
 
 ## Complete Environment Reset
 
-### Delete All Data
+### Reset and Rebuild
 
-To start completely fresh (⚠️ **ALL DATA WILL BE LOST**):
+To tear down the entire environment and rebuild from scratch, use the reset script:
+
+```bash
+./local-26ai.sh dev/reset
+```
+
+This will:
+- Stop and remove all containers
+- Delete the Docker/Podman volume (all database data)
+- Remove generated files (`.env`, ORDS config, APEX install files)
+- Run `install.sh` to rebuild everything from zero
+
+The script preserves your git repository, `backups/`, `apex-patches/`, and SSL certificates. You will be prompted to confirm before anything is deleted.
+
+If you have APEX patches in the `apex-patches/` directory, they will be automatically applied during the rebuild.
+
+### Manual Reset
+
+If you prefer to reset manually without rebuilding:
 
 ```bash
 docker compose down        # or: podman compose down
