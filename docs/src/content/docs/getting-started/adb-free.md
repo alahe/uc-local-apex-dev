@@ -37,7 +37,12 @@ Once the container is running (check with `docker logs -f local-adb-free`):
 | **DB (mTLS)** | localhost:1522 |
 | **MongoDB API** | localhost:27017 |
 
-**Credentials**: `ADMIN` / password from `.env.adb`
+### Login
+
+| Field | Value |
+|-------|-------|
+| Username | `ADMIN` |
+| Password | Value of `ADB_ADMIN_PASSWORD` from `.env.adb` |
 
 ## ADB Free vs DB + ORDS Stack
 
@@ -83,7 +88,7 @@ The 19c image is AMD64 only. On Apple Silicon Macs it runs via emulation, which 
 
 ## Configuration
 
-The `.env.adb` file (auto-generated on first start) contains:
+The `.env.adb` file (auto-generated on first start, excluded from Git) contains:
 
 ```bash
 ADB_ADMIN_PASSWORD=<generated>
@@ -91,6 +96,15 @@ ADB_WALLET_PASSWORD=<generated>
 ADB_WORKLOAD_TYPE=ATP          # or ADW for Lakehouse
 ADB_IMAGE_TAG=latest-26ai      # set by --19c / --23ai / --26ai
 ```
+
+### Environment Variables (`.env.adb`)
+
+| Variable | Purpose | Used by |
+|----------|---------|---------|
+| `ADB_ADMIN_PASSWORD` | `ADMIN` user password for APEX, Database Actions, and SQL connections | Browser login, SQL Developer, SQLcl |
+| `ADB_WALLET_PASSWORD` | mTLS wallet password for secure database connections | mTLS connections on port 1522, wallet-based tools |
+| `ADB_WORKLOAD_TYPE` | `ATP` (Transaction Processing) or `ADW` (Data Warehouse/Lakehouse) | Container initialization |
+| `ADB_IMAGE_TAG` | Container image tag (`latest-26ai`, `latest-23ai`, `latest`) | `docker-compose.adb.yml` |
 
 Change `ADB_WORKLOAD_TYPE` to `ADW` for a Lakehouse (data warehouse) workload instead of Transaction Processing.
 

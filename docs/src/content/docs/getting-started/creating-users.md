@@ -24,10 +24,13 @@ This will:
 - Optimize workspace settings like session length, max emails and REST messages and password lifetime
 
 :::tip[Access Credentials]
-You can access the workspace with:
-- **Username**: `ADMIN` or the schema name (e.g., `MOVIES`)
-- **Password**: `Welcome_1`
-- **URL**: http://localhost:8181/ords/apex
+
+| Field | Value |
+|-------|-------|
+| URL | http://localhost:8181/ords/apex |
+| Username | `ADMIN` or the schema name (e.g., `MOVIES`) |
+| Password | `Welcome_1` |
+
 :::
 
 ### Create Schema Only
@@ -109,10 +112,12 @@ You will also find the connections in the VS Code SQL Developer extension. You m
 
 ### Other Development Tools
 
-Use these connection details for other development tools:
+Use these connection details for SQL Developer, DBeaver, or other tools:
 
-- **Host**: localhost
-- **Port**: 1521
-- **Service**: FREEPDB1
-- **Username**: Your schema name
-- **Password**: The `<NAME>_USER_PASSWORD` value in the `.env` file
+| Field | Value |
+|-------|-------|
+| Host | `localhost` |
+| Port | `1521` |
+| Service | `FREEPDB1` |
+| Username | Your schema name (e.g., `MOVIES`) |
+| Password | Value of `<NAME>_USER_PASSWORD` from `.env` |

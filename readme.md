@@ -6,6 +6,17 @@ A containerized development environment (works with Docker, Podman, or any conta
 
 **⚠️ This is not for production use!** Passwords stored in plain text, security features relaxed. For local development only.
 
+## Prerequisites
+
+- **Docker or Podman** (or any docker-compatible container runtime)
+  - Allocate at least **4 GB RAM** and **3 CPUs** to your VM. The default Podman VM is too small for Oracle — [learn more](https://hartenfeller.dev/blog/oracle-23ai-container-wont-start-mac)
+  - `docker compose` or `podman-compose`
+- **SQLcl** with `sql` command in your PATH
+- **Bash-compatible shell** (on Windows, use WSL2)
+- **Optional**: [mkcert](https://github.com/FiloSottile/mkcert) for trusted HTTPS without browser warnings
+
+> **On Mac?** See [Podman on macOS](docs/src/content/docs/other/podman-on-mac.md) for VM setup instructions.
+
 ## Quick Start
 
 ```bash
@@ -15,7 +26,35 @@ chmod +x ./install.sh ./local-26ai.sh ./setup.sh ./scripts/*.sh
 ./install.sh
 ```
 
-After ~15 minutes:
+The install script will:
+
+1. Generate passwords and create `.env`
+2. Pull Oracle 26ai and ORDS container images
+3. Start the database and ORDS containers
+4. Install APEX (this takes the longest)
+5. Run post-install configuration
+
+**Follow the progress in the logs:**
+
+```bash
+docker logs -f local-26ai-ords
+```
+
+You'll see output like:
+
+```
+INFO : This container will start a service running ORDS 26.1 and APEX 24.2.
+INFO : CONN_STRING has been found in the container variables file.
+INFO : Database connection established.
+INFO : Apex is not installed on your database.
+INFO : Installing APEX on your DB please be patient.
+...
+INFO : APEX has been installed.
+INFO : Configuring APEX.
+INFO : APEX ADMIN password has configured.
+```
+
+After ~15 minutes, services are available at:
 
 | Service | URL |
 |---------|-----|
@@ -24,14 +63,20 @@ After ~15 minutes:
 | **ORDS Landing** | http://localhost:8181/ords/\_/landing |
 | **Database** | `localhost:1521` / Service: `FREEPDB1` |
 
-**Login**: INTERNAL workspace → `ADMIN` / password from `.env` (`ORACLE_PASSWORD`)
+### First Login
+
+| Field | Value |
+|-------|-------|
+| Workspace | `INTERNAL` |
+| Username | `ADMIN` |
+| Password | Value of `ORACLE_PASSWORD` from `.env` |
 
 ```bash
 # Create your first workspace
-local-26ai.sh create-user myproject
+./local-26ai.sh create-user myproject
 
 # See all commands
-local-26ai.sh --help
+./local-26ai.sh --help
 ```
 
 ## ADB Free (Alternative)
@@ -50,7 +95,68 @@ Run Oracle ADB Free — a single container with DB, APEX, ORDS, and Database Act
 | **Database Actions** | https://localhost:8443/ords/sql-developer |
 | **DB (TLS)** | `localhost:1521` |
 
-**Login**: `ADMIN` / password from `.env.adb` · See the [ADB Free documentation](docs/src/content/docs/getting-started/adb-free.md) for details.
+**Login**:
+
+| Field | Value |
+|-------|-------|
+| Username | `ADMIN` |
+| Password | Value of `ADB_ADMIN_PASSWORD` from `.env.adb` |
+
+See the [ADB Free documentation](docs/src/content/docs/getting-started/adb-free.md) for details.
+
+## Container Management
+
+```bash
+# Start containers
+./local-26ai.sh start
+
+# Stop containers (graceful DB shutdown)
+./local-26ai.sh stop
+
+# View database logs
+docker logs -f local-26ai
+
+# View ORDS logs
+docker logs -f local-26ai-ords
+```
+
+> **Tip**: The containers use resources in the background. Stop them when you're not developing to free up memory.
+
+## Common Tasks
+
+```bash
+# Create a new schema + APEX workspace
+./local-26ai.sh create-user myproject
+
+# Delete all objects in a schema (keep the schema)
+./local-26ai.sh clear-schema myproject
+
+# Drop a user completely
+./local-26ai.sh drop-user myproject
+
+# Backup all schemas
+./local-26ai.sh backup-all
+
+# Backup a single schema
+./local-26ai.sh backup-user myproject
+
+# Restore from backup
+./local-26ai.sh import-backup myproject
+
+# Test an APEX app install in a clean schema
+./local-26ai.sh test-app-install f100.sql
+
+# Check database space usage
+./local-26ai.sh used-space
+
+# Reclaim unused disk space
+./local-26ai.sh shrink-space
+```
+
+> **Tip**: Set up a shell alias for quick access:
+> ```bash
+> alias apex-dev='cd /path/to/uc-local-apex-dev && ./local-26ai.sh'
+> ```
 
 ## Features
 
@@ -85,11 +191,13 @@ Run Oracle ADB Free — a single container with DB, APEX, ORDS, and Database Act
 
 ## Contributing
 
-If you have any ideas on how to improve this setup, please create an issue or a pull request.
+This is a fork of the [original project by United Codes](https://github.com/United-Codes/uc-local-apex-dev). For contributions to the core project, please submit issues and pull requests to the [upstream repository](https://github.com/United-Codes/uc-local-apex-dev).
 
-I am especially thankful for improvements to the bash scripts.
+For issues or improvements specific to this fork (ADB Free, Podman support, mkcert, patch management, etc.), use [this repository's issues](https://github.com/alahe/uc-local-apex-dev/issues).
 
-## Special thanks
+## Acknowledgements
+
+The following thanks are from the [original project](https://github.com/United-Codes/uc-local-apex-dev) by [United Codes](https://www.united-codes.com):
 
 - The [contributors](https://github.com/United-Codes/uc-local-apex-dev/graphs/contributors) for their help
 - Connor McDonald for his blog post on [space efficiently using the Free Edition](https://connor-mcdonald.com/2023/12/18/the-ultimate-database-free-edition/)
@@ -100,7 +208,8 @@ I am especially thankful for improvements to the bash scripts.
 - The database team for providing an ARM image for the Oracle database
 - The ORDS team for providing an ARM image for ORDS
 
-The cherry on top would be Oracle making APEX patches free to download for everyone.
+> *"The cherry on top would be Oracle making APEX patches free to download for everyone."*
+> — United Codes
 
 ---
 
