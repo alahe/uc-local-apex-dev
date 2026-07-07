@@ -16,3 +16,5 @@ install_*.log
 .fetch-client/
 apex-patches/*.zip
 post-install.conf
+.env.adb
+.certs/

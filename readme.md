@@ -4,41 +4,90 @@
 
 A containerized development environment (works with Docker, Podman, or any container runtime) that automates common tasks and lets you focus on building APEX applications.
 
+**⚠️ This is not for production use!** Passwords stored in plain text, security features relaxed. For local development only.
+
+## Quick Start
+
+```bash
+git clone https://github.com/alahe/uc-local-apex-dev.git
+cd uc-local-apex-dev
+chmod +x ./install.sh ./local-26ai.sh ./setup.sh ./scripts/*.sh
+./install.sh
+```
+
+After ~15 minutes:
+
+| Service | URL |
+|---------|-----|
+| **APEX** | http://localhost:8181/ords/apex |
+| **APEX (SSL)** | https://localhost:8443/ords/apex |
+| **ORDS Landing** | http://localhost:8181/ords/\_/landing |
+| **Database** | `localhost:1521` / Service: `FREEPDB1` |
+
+**Login**: INTERNAL workspace → `ADMIN` / password from `.env` (`ORACLE_PASSWORD`)
+
+```bash
+# Create your first workspace
+local-26ai.sh create-user myproject
+
+# See all commands
+local-26ai.sh --help
+```
+
+## ADB Free (Alternative)
+
+Run Oracle ADB Free — a single container with DB, APEX, ORDS, and Database Actions. Supports **19c**, **23ai**, and **26ai**:
+
+```bash
+./local-26ai.sh adb/start           # 26ai (default)
+./local-26ai.sh adb/start --19c     # 19c database
+./local-26ai.sh adb/stop            # stop
+```
+
+| Service | URL |
+|---------|-----|
+| **APEX** | https://localhost:8443/ords/apex |
+| **Database Actions** | https://localhost:8443/ords/sql-developer |
+| **DB (TLS)** | `localhost:1521` |
+
+**Login**: `ADMIN` / password from `.env.adb` · See the [ADB Free documentation](docs/src/content/docs/getting-started/adb-free.md) for details.
+
 ## Features
 
-Everything is a single command via the `local-26ai.sh` wrapper — run `local-26ai.sh --help` or see the [Command Reference](https://www.united-codes.com/products/uc-local-apex-dev/docs/reference/commands/) for the full list.
-
-- ✅ [One-command operations](https://www.united-codes.com/products/uc-local-apex-dev/docs/reference/commands/): create users, backups, clear schemas, test installs
-- ✅ [Create APEX workspaces and database schemas](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/creating-users/) with optimal development grants
+- ✅ One-command operations: create users, backups, clear schemas, test installs
+- ✅ Create APEX workspaces and database schemas with optimal development grants
 - ✅ All users automatically registered in SQLcl and VS Code for instant access
-- ✅ [Built-in Oracle DataPump backup and restore](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/backups/)
-- ✅ [ORDS with SSL support](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/common-tasks/#ssl-configuration) for production-like local development
-- ✅ [Test APEX application installs](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/install-apps-scripts/) repeatedly in isolated test schemas
-- ✅ [Full PL/SQL debugging support](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/plsql-debugging/) with VS Code SQL Developer
-- ✅ Disk-space tooling for the 12GB Free edition: usage report, shrink, and Advanced Compression
-
-**⚠️ This is not for production use!** Intentionally unsecure and optimized for ease of development. Passwords stored in plain text, security features relaxed. For local development only.
-
-[Installation Guide](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/)
+- ✅ Built-in Oracle DataPump backup and restore
+- ✅ ORDS with SSL support for production-like local development
+- ✅ Test APEX application installs repeatedly in isolated test schemas
+- ✅ Full PL/SQL debugging support with VS Code SQL Developer
+- ✅ APEX patch management (auto-apply during install)
+- ✅ Post-install configuration (auto-create workspaces & ORDS pools)
+- ✅ ADB Free support (19c / 23ai / 26ai with built-in APEX & ORDS)
 
 ## Documentation
 
-For complete setup instructions, configuration guides, and usage examples, visit our documentation site:
+🌐 [Online Documentation](https://www.united-codes.com/products/uc-local-apex-dev/docs/) · [GitHub](https://github.com/United-Codes/uc-local-apex-dev) · **📖 [Local Docs](docs/src/content/docs/index.mdx)** · [Browse locally](docs/src/content/docs/other/docs-server.md) (`./local-26ai.sh docs`)
 
-**📖 [UC Local APEX Dev Documentation](https://www.united-codes.com/products/uc-local-apex-dev/docs/)**
-
-The documentation includes:
-- [Installation Guide](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/)
-- [Common Tasks & Commands](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/common-tasks/)
-- [Backups](https://www.united-codes.com/products/uc-local-apex-dev/docs/getting-started/backups/)
-- [Migration Guides](https://www.united-codes.com/products/uc-local-apex-dev/docs/migrations/25-3/)
+| Guide | Description |
+|-------|-------------|
+| [Installation Guide](docs/src/content/docs/getting-started/index.md) | Full setup instructions |
+| [ADB Free Container](docs/src/content/docs/getting-started/adb-free.md) | All-in-one DB + APEX + ORDS (19c/26ai) |
+| [Common Tasks](docs/src/content/docs/getting-started/common-tasks.md) | Start/stop, SSL, maintenance |
+| [Creating Users](docs/src/content/docs/getting-started/creating-users.md) | Schemas, workspaces, access |
+| [Backups](docs/src/content/docs/getting-started/backups.md) | DataPump backup & restore |
+| [Post-Install Config](docs/src/content/docs/getting-started/post-install.md) | Auto-create workspaces on install |
+| [Upgrade APEX & Patches](docs/src/content/docs/migrations/upgrade-apex.md) | Upgrade APEX, apply PSBs |
+| [PL/SQL Debugging](docs/src/content/docs/getting-started/plsql-debugging.md) | VS Code debugger setup |
+| [Install Apps or Scripts](docs/src/content/docs/getting-started/install-apps-scripts.md) | Test app installs |
+| [FAQ](docs/src/content/docs/other/faq.md) | Troubleshooting |
+| [Podman on macOS](docs/src/content/docs/other/podman-on-mac.md) | Podman VM setup |
 
 ## Contributing
 
 If you have any ideas on how to improve this setup, please create an issue or a pull request.
 
 I am especially thankful for improvements to the bash scripts.
-
 
 ## Special thanks
 
@@ -52,3 +101,9 @@ I am especially thankful for improvements to the bash scripts.
 - The ORDS team for providing an ARM image for ORDS
 
 The cherry on top would be Oracle making APEX patches free to download for everyone.
+
+---
+
+> **Fork Notice**: This repository is based on [uc-local-apex-dev](https://github.com/United-Codes/uc-local-apex-dev) by [United Codes](https://www.united-codes.com) and contains additional modifications (Podman native support, APEX patch management, post-install configuration, ADB Free support, environment reset, and documentation restructuring). These modifications are not affiliated with or supported by United Codes. For the original, unmodified version, please refer to the [upstream repository](https://github.com/United-Codes/uc-local-apex-dev).
+
+[MIT License](LICENSE) · Original © 2024 United Codes

@@ -1,0 +1,26 @@
+name: uc-local-apex-dev-adb
+services:
+  adb-free:
+    image: ghcr.io/oracle/adb-free:${ADB_IMAGE_TAG:-latest-26ai}
+    container_name: local-adb-free
+    ports:
+      - "1521:1522"     # TLS
+      - "1522:1522"     # mTLS
+      - "8443:8443"     # ORDS / APEX / Database Actions
+      - "27017:27017"   # MongoDB API
+    environment:
+      - WORKLOAD_TYPE=${ADB_WORKLOAD_TYPE:-ATP}
+      - WALLET_PASSWORD=${ADB_WALLET_PASSWORD}
+      - ADMIN_PASSWORD=${ADB_ADMIN_PASSWORD}
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - "/dev/fuse:/dev/fuse"
+    volumes:
+      - adb-data:/u01
+      - ./.certs:/u01/ords/certs:ro
+    restart: no
+
+volumes:
+  adb-data:
+    name: adb-data
