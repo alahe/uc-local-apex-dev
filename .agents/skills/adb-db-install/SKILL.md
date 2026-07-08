@@ -128,6 +128,12 @@ ALTER SESSION SET CURRENT_SCHEMA = <schema>;
 
 Or connected directly as ADMIN with `CREATE ANY TABLE` etc. privileges.
 
+> [!WARNING]
+> **Accidental ADMIN Schema Creation**: When executing manual DDL (like `CREATE OR REPLACE PACKAGE`) while logged in as `ADMIN`:
+> - `ALTER SESSION SET CURRENT_SCHEMA = <schema>;` only affects table/view name resolution.
+> - It **does NOT** change the target schema of a `CREATE` statement. Objects created without an explicit schema prefix will default to the current login user (`ADMIN`).
+> - Always ensure the DDL contains the schema prefix: `CREATE OR REPLACE PACKAGE <schema_name>.<package_name>`.
+
 **Error handling**: Use `WHENEVER SQLERROR CONTINUE` during installation, collect errors, and report at the end.
 
 ## Adapting SQL Files for ADB
