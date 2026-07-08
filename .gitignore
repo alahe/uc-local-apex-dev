@@ -18,3 +18,4 @@ apex-patches/*.zip
 post-install.conf
 .env.adb
 .certs/
+logs/

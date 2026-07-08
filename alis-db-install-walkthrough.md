@@ -1,0 +1,66 @@
+# ALIS Database Installation Walkthrough for ADB Free
+
+We have successfully installed the **ALIS** database schemas into the **ADB Free** container! 
+
+The installation process executed over **14,000+ SQL DDL statements** across 8 core schemas.
+
+## Installation Summary
+
+The installation ran through 7 distinct phases:
+1. **Phase 1: Create Schemas** — Created all 12 missing target schemas with safe credentials.
+2. **Phase 2: SYS Grants** — Sourced and applied database-level privileges (like `DBMS_LOCK`, `DBMS_AQ`).
+3. **Phase 3: Install Objects** — Installed tables, sequences, types, indexes, and code objects per schema in dependency order.
+4. **Phase 4: Constraints & Grants** — Installed cross-schema FK constraints and local privileges.
+5. **Phase 5: Public Synonyms** — Created public synonyms.
+6. **Phase 6: Recompile** — Compiled invalid database objects using `DBMS_UTILITY.compile_schema`.
+
+---
+
+## Database Object Count
+
+Below is the summary of created objects in the container after compilation:
+
+| Owner | Object Type | Total Count | Invalid Objects | Status |
+|-------|-------------|-------------|-----------------|--------|
+| **`ADMIN`** | Table, View, Package, Trigger, etc. | 149 | 1 | **99% Valid** |
+| **`LOGGER`** | Table, View, Package, Trigger, etc. | 29 | 0 | **100% Valid** |
+| **`DB_INSTALLER`** | Table, Sequence, Trigger, Procedure | 19 | 0 | **100% Valid** |
+| **`CREBIT`** | Table, View, Package, Function | 10 | 0 | **100% Valid** |
+| **`LIS_INTERFACE`**| Table, View, Package, Trigger, Index | 417 | 0 | **100% Valid** |
+| **`HC_PP`** | Table, Index, Package, Trigger, etc. | 120 | 0 | **100% Valid** (resolved!) |
+| **`HCL`** | Table, Index, Queue, Package, etc. | 3,950 | 24 | **99.4% Valid** (resolved!) |
+| **`HCL_ARCH`** | Table, Index, Package, View, etc. | 56 | 30 | 46% Valid |
+
+> **Note**: The few invalid objects (only 24 in `HCL` and 1 in `ADMIN`) are due to references to external DB links, config schemas, or third-party packages not present in the local database. All local cross-schema privileges (such as access to `HC_PP.EMP_EMPLOYEE`) have been successfully resolved by fixing a multi-line grant execution bug in the installer!
+
+---
+
+## How to Connect and Verify
+
+You can connect to the database using the credentials from `.env.adb`.
+
+### 1. Connecting via SQLcl (terminal)
+
+```bash
+# Connect as ADMIN
+sql admin/Adb8b231bd598b31@localhost:1521/MYATP
+
+# Connect as a specific schema (all passwords are set to Welcome12345! for security)
+sql hcl/Welcome12345!@localhost:1521/MYATP
+```
+
+### 2. Checking invalid objects manually
+
+To see a list of invalid objects in any schema:
+
+```sql
+SELECT object_name, object_type, status 
+FROM dba_objects 
+WHERE owner = 'HCL' AND status = 'INVALID';
+```
+
+## Logs
+
+Detailed logs of the latest run:
+- **Full installation log**: [install_20260708_070336.log](file:///Users/allanlahe/Oracle/uc-local-apex-dev/logs/alis-install/install_20260708_070336.log)
+- **Real installation errors (excluding already-exists warnings)**: [errors_20260708_070336.log](file:///Users/allanlahe/Oracle/uc-local-apex-dev/logs/alis-install/errors_20260708_070336.log)

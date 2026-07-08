@@ -43,7 +43,7 @@ docker logs -f local-26ai-ords
 You'll see output like:
 
 ```
-INFO : This container will start a service running ORDS 26.1 and APEX 24.2.
+INFO : This container will start a service running ORDS <version> and APEX <version>.
 INFO : CONN_STRING has been found in the container variables file.
 INFO : Database connection established.
 INFO : Apex is not installed on your database.
@@ -53,6 +53,8 @@ INFO : APEX has been installed.
 INFO : Configuring APEX.
 INFO : APEX ADMIN password has configured.
 ```
+
+> **Note**: The exact ORDS and APEX versions depend on the container images defined in `docker-compose.yml` (currently ORDS `26.1.2`, DB `23.26.2.0`).
 
 After ~15 minutes, services are available at:
 
