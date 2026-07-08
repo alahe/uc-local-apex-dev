@@ -74,3 +74,14 @@ ORDER BY o.owner, o.object_type, o.object_name, e.line;
 Detailed logs of the latest run:
 - **Full installation log**: [install_20260708_070336.log](file:///Users/allanlahe/Oracle/uc-local-apex-dev/logs/alis-install/install_20260708_070336.log)
 - **Real installation errors (excluding already-exists warnings)**: [errors_20260708_070336.log](file:///Users/allanlahe/Oracle/uc-local-apex-dev/logs/alis-install/errors_20260708_070336.log)
+
+---
+
+## Known Code Modifications Applied
+
+During the initial installation, we identified and fixed a syntax issue in the `alis` source files:
+
+### 1. `HCL.DOC_DOCUMENT_GEN` Package Body Fix
+* **File**: `alis/src/database/hcl/package_bodies/doc_document_gen.sql` (Line 276)
+* **Error**: The query inside cursor `c1` referenced a Common Table Expression (CTE) with a schema prefix: `hcl.doc_select dd2`. In Oracle PL/SQL, local CTE names cannot have schema prefixes. This caused `ORA-00942` and broke the loop index record variables (throwing `PLS-00364` on `C_REC1`).
+* **Fix**: Removed the schema prefix, changing `hcl.doc_select dd2` to `doc_select dd2`. The package body now compiles successfully with **no errors**.

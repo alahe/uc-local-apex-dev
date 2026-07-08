@@ -148,3 +148,15 @@ Some statements may need modification:
 - ADMIN privileges: 287 system privileges (near-DBA)
 - Default tablespace: `DATA`
 - Connection from inside container: `localhost:1521/<SERVICE>`
+
+## Known Issues & Workarounds
+
+### 1. CTE Schema Prefix in PL/SQL (ORA-00942 / PLS-00364)
+- **File**: `hcl/package_bodies/doc_document_gen.sql` (Line 276)
+- **Problem**: The snapshot exporter prefixed a Common Table Expression (CTE) with the schema name: `hcl.doc_select dd2`. Since CTEs are local query blocks and do not have a schema, this causes a compilation error.
+- **Symptom**: Package fails to compile with `ORA-00942` and `PLS-00364` (loop index variable `C_REC1` use is invalid).
+- **Fix**: Remove the schema prefix. Change `hcl.doc_select dd2` to `doc_select dd2`.
+
+### 2. Custom Type Dependency (ORA-00902)
+- **Problem**: Tables using custom database types fail to create with `ORA-00902: invalid datatype` if `tables` are loaded before `type_specs`.
+- **Fix**: The `install.sh` order starts with `type_specs` before `tables` to resolve all database-level type dependencies.
