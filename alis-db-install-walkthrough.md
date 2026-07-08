@@ -28,10 +28,10 @@ Below is the summary of created objects in the container after compilation:
 | **`CREBIT`** | Table, View, Package, Function | 10 | 0 | **100% Valid** |
 | **`LIS_INTERFACE`**| Table, View, Package, Trigger, Index | 417 | 0 | **100% Valid** |
 | **`HC_PP`** | Table, Index, Package, Trigger, etc. | 120 | 0 | **100% Valid** (resolved!) |
-| **`HCL`** | Table, Index, Queue, Package, etc. | 3,950 | 24 | **99.4% Valid** (resolved!) |
-| **`HCL_ARCH`** | Table, Index, Package, View, etc. | 56 | 30 | 46% Valid |
+| **`HCL`** | Table, Index, Queue, Package, etc. | 3,950 | 18 | **99.5% Valid** (resolved!) |
+| **`HCL_ARCH`** | Table, Index, Package, View, etc. | 56 | 27 | 51% Valid |
 
-> **Note**: The few invalid objects (only 24 in `HCL` and 1 in `ADMIN`) are due to references to external DB links, config schemas, or third-party packages not present in the local database. All local cross-schema privileges (such as access to `HC_PP.EMP_EMPLOYEE`) have been successfully resolved by fixing a multi-line grant execution bug in the installer!
+> **Note**: The few invalid objects (only 18 in `HCL` and 2 in `ADMIN` bodies) are due to references to external DB links, config schemas, or third-party packages not present in the local database. All local cross-schema privileges (such as access to `HC_PP.EMP_EMPLOYEE`) have been successfully resolved by fixing a multi-line grant execution bug in the installer!
 
 ---
 
