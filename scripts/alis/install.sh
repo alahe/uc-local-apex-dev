@@ -58,7 +58,7 @@ to_upper() {
 }
 
 # Object types in installation order
-INSTALL_ORDER="tables sequences type_specs indexes comments views materialized_view_logs materialized_views synonyms aq_queue_tables aq_queues functions procedures package_specs package_bodies triggers jobs"
+INSTALL_ORDER="type_specs tables sequences indexes comments views materialized_view_logs materialized_views synonyms aq_queue_tables aq_queues functions procedures package_specs package_bodies triggers jobs"
 
 # Post-install phases (after all schemas)
 POST_INSTALL_ORDER="ref_constraints object_grants"
@@ -120,8 +120,7 @@ ALTER SESSION SET CURRENT_SCHEMA = ${schema_upper};
 @/tmp/install_sql.sql
 SQLEOF" 2>&1)
 
-  # Check for errors (ignore "already exists" type errors)
-  if echo "$result" | grep -q "ORA-" | grep -v "ORA-00955" | grep -v "ORA-01430" | grep -v "ORA-02275"; then
+  if echo "$result" | grep "ORA-" | grep -v "ORA-00955" | grep -v "ORA-01430" | grep -v "ORA-02275" | grep -q "ORA-"; then
     local err_line
     err_line=$(echo "$result" | grep "ORA-" | head -1)
     if [ -n "$err_line" ]; then
