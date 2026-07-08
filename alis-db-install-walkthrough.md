@@ -49,14 +49,24 @@ sql admin/Adb8b231bd598b31@localhost:1521/MYATP
 sql hcl/Welcome12345!@localhost:1521/MYATP
 ```
 
-### 2. Checking invalid objects manually
-
-To see a list of invalid objects in any schema:
+To see a list of all invalid objects and the **exact compiler error reason** (including line numbers), run this query as `ADMIN`:
 
 ```sql
-SELECT object_name, object_type, status 
-FROM dba_objects 
-WHERE owner = 'HCL' AND status = 'INVALID';
+SELECT 
+    o.owner,
+    o.object_name,
+    o.object_type,
+    e.line,
+    e.position,
+    e.text AS error_reason
+FROM dba_objects o
+LEFT JOIN dba_errors e 
+    ON o.owner = e.owner 
+   AND o.object_name = e.name 
+   AND o.object_type = e.type
+WHERE o.status = 'INVALID'
+  AND o.owner IN ('ADMIN', 'HCL', 'HC_PP', 'LOGGER', 'DB_INSTALLER', 'CREBIT', 'LIS_INTERFACE', 'HCL_ARCH')
+ORDER BY o.owner, o.object_type, o.object_name, e.line;
 ```
 
 ## Logs
