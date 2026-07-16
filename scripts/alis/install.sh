@@ -99,6 +99,17 @@ ${sql_text}
 SQLEOF" 2>&1
 }
 
+prepare_sql_file() {
+  local src_file="$1"
+  local dest_file="$2"
+  if grep -q "hcl\.doc_select" "$src_file" 2>/dev/null; then
+    log "  [Fix] Removing hcl. prefix from CTE reference in $(basename "$src_file")"
+    sed -e 's/hcl\.doc_select/doc_select/gI' "$src_file" > "$dest_file"
+  else
+    cat "$src_file" > "$dest_file"
+  fi
+}
+
 run_sql_file_as_schema() {
   local schema="$1"
   local file="$2"
@@ -107,8 +118,13 @@ run_sql_file_as_schema() {
   local schema_upper
   schema_upper=$(to_upper "$schema")
 
+  # Prepare file (apply fixes)
+  local tmp_prepared="/tmp/prepared_install.sql"
+  prepare_sql_file "$file" "$tmp_prepared"
+
   # Copy file to container
-  docker cp "$file" "${CONTAINER}:/tmp/install_sql.sql" 2>/dev/null
+  docker cp "$tmp_prepared" "${CONTAINER}:/tmp/install_sql.sql" 2>/dev/null
+  rm -f "$tmp_prepared" 2>/dev/null || true
 
   # Run as ADMIN with current_schema set
   local result
@@ -332,8 +348,11 @@ for schema in $ALL_SCHEMAS $GRANT_ONLY_SCHEMAS; do
     # Combine all SQL statements
     for f in "$type_dir"/*.sql; do
       [ -f "$f" ] || continue
-      cat "$f" >> "$temp_concat"
+      tmp_prepared="/tmp/prepared_concat.sql"
+      prepare_sql_file "$f" "$tmp_prepared"
+      cat "$tmp_prepared" >> "$temp_concat"
       echo "" >> "$temp_concat" # ensure newline
+      rm -f "$tmp_prepared" 2>/dev/null || true
     done
 
     result=$(run_sql_file_as_schema "$schema" "$temp_concat")

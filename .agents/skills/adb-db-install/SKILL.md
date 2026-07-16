@@ -13,6 +13,50 @@ Install Oracle database objects from a SQLcl Liquibase/snapshot export directory
 - Migrating on-premises Oracle database code to ADB Free
 - Setting up development environments with existing database structures
 
+## Step-by-Step Guide: Downloading & Installing DB Code
+
+To download and install the database components from a Git repository (like `alis`, or in the future any other application like `argus`):
+
+### 1. Download/Clone the Database Repository
+Clone the source database repository to a folder next to your `uc-local-apex-dev` workspace (e.g., inside `~/Oracle/`):
+
+```bash
+# Example for ALIS:
+cd ~/Oracle
+git clone https://github.com/alahe/alis.git
+
+# Example for a future application (like ARGUS):
+# git clone https://github.com/alahe/argus.git
+```
+
+### 2. Identify the Database Source Directory
+Verify the path to the database source files. It should contain folders named after the database schemas:
+- For ALIS: `/Users/allanlahe/Oracle/alis/src/database`
+- For a future app: `/Users/allanlahe/Oracle/argus/src/database`
+
+### 3. Run the Automated Installer
+Run the installer skript inside your local APEX orchestration workspace, passing the path to the database source directory:
+
+```bash
+# Run full installation:
+./scripts/alis/install.sh /Users/allanlahe/Oracle/alis/src/database
+
+# Run only post-install modifications (such as FK constraints & grants recompilation):
+./scripts/alis/install.sh /Users/allanlahe/Oracle/alis/src/database --post
+```
+
+---
+
+## Automated SQL Modifications on the Fly
+
+The installer script contains a helper function `prepare_sql_file` which dynamically prepares and cleans the SQL files before copying them to the container. This prevents syntax errors and schema contamination without modifying your clean git checkout of the application.
+
+### 1. Removing CTE Schema Prefixes
+- **What it does**: Searches SQL files for schema-prefixed Common Table Expressions (e.g. `hcl.doc_select`) and removes the schema prefix (replacing it with `doc_select`).
+- **Why it is needed**: In Oracle, CTEs defined in `WITH` clauses are local query blocks and do not belong to a schema. Schema-prefixing them (a common bug in snapshot exporters) causes `ORA-00942: table or view does not exist` errors, which in turn invalidates package bodies and causes secondary compiler errors (`PLS-00364: loop index variable use is invalid`).
+
+---
+
 ## ADB Free Key Differences
 
 ### No SYSDBA Access
