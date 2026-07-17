@@ -24,6 +24,9 @@ echo "DBSERVICENAME=\"FREEPDB1\"" >>.env
 echo "DBHOST=\"26ai\"" >>.env
 echo "DBPORT=\"1521\"" >>.env
 echo "FORCE_SECURE=\"false\"" >>.env
+echo "DB_IMAGE_REPO=\"container-registry.oracle.com\"" >>.env
+echo "ORDS_IMAGE_REPO=\"container-registry.oracle.com\"" >>.env
+
 
 echo "Created .env file"
 

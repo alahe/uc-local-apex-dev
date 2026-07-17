@@ -105,6 +105,8 @@ ADB_IMAGE_TAG=latest-26ai      # set by --19c / --23ai / --26ai
 | `ADB_WALLET_PASSWORD` | mTLS wallet password for secure database connections | mTLS connections on port 1522, wallet-based tools |
 | `ADB_WORKLOAD_TYPE` | `ATP` (Transaction Processing) or `ADW` (Data Warehouse/Lakehouse) | Container initialization |
 | `ADB_IMAGE_TAG` | Container image tag (`latest-26ai`, `latest-23ai`, `latest`) | `docker-compose.adb.yml` |
+| `ADB_IMAGE_REPO` | Container registry host (`ghcr.io` or company mirror like JFrog) | `docker-compose.adb.yml` |
+
 
 Change `ADB_WORKLOAD_TYPE` to `ADW` for a Lakehouse (data warehouse) workload instead of Transaction Processing.
 

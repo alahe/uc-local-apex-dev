@@ -85,3 +85,87 @@ During the initial installation, we identified and fixed a syntax issue in the `
 * **File**: `alis/src/database/hcl/package_bodies/doc_document_gen.sql` (Line 276)
 * **Error**: The query inside cursor `c1` referenced a Common Table Expression (CTE) with a schema prefix: `hcl.doc_select dd2`. In Oracle PL/SQL, local CTE names cannot have schema prefixes. This caused `ORA-00942` and broke the loop index record variables (throwing `PLS-00364` on `C_REC1`).
 * **Fix**: Removed the schema prefix, changing `hcl.doc_select dd2` to `doc_select dd2`. The package body now compiles successfully with **no errors**.
+
+---
+
+## Migration to Oracle SQLcl Project Framework
+
+To improve deployment speed, support Git-integrated CI/CD, and allow incremental updates rather than full database drops, the database schema management has been migrated to the **Oracle SQLcl Project Framework**.
+
+### Project Configuration
+* **Project Directory**: `/Users/allanlahe/Oracle/alis`
+* **Configuration File**: [project.config.json](file:///Users/allanlahe/Oracle/alis/.dbtools/project.config.json)
+* **Active Schemas**: `ADMIN`, `CREBIT`, `HC_PP`, `HCL`, `HCL_ARCH`, `LIS_INTERFACE`, `LIS_RESTFUL`, `LOGGER` (8 core schemas).
+* **Filters**: Unrecognized schema folders and objects (e.g. system schemas, external grants) are excluded to ensure clean operation on the local container.
+
+### Directory Structure
+```
+alis/
+├── .dbtools/                # SQLcl Project configuration and filters
+├── src/
+│   └── database/            # Source DDL files (.sql) organized by schema and object type
+└── dist/                    # Output directory for staged changesets
+    ├── install.sql          # Master installation entry script
+    ├── releases/
+    │   ├── main.changelog.xml  # Master release changelog
+    │   └── next/               # Staged changesets for the upcoming release
+    └── utils/               # Recompilation and checking scripts
+```
+
+### Developer Workflow for Database Changes
+
+When making database modifications, developers should follow this sequential workflow to ensure clean, differential changeset generation:
+
+#### 1. Alter the Object in the Local Database
+Make the schema change or code modification directly in your local developer database (e.g., run `ALTER TABLE` or replace a package body using a SQL client).
+
+#### 2. Refresh snapshot SXML (For Tables only)
+If modifying a structural object (like adding a column to a table), SQLcl requires the exact XML representation (SXML) to generate the differential alter statement. Export the object directly from the database using SQLcl to generate the snapshot metadata:
+```bash
+# Export the single modified table to refresh its snapshot comment on disk
+sql admin/Adb8b231bd598b31@myatp_medium
+project export -objects SCHEMA_NAME.TABLE_NAME
+```
+*This step is not required for PL/SQL code objects (packages, views, triggers, functions, procedures) as they are recreated via `CREATE OR REPLACE`.*
+
+#### 3. Commit the source changes to Git
+Stage and commit the modified SQL file in the `src/database/` directory:
+```bash
+git add src/database/admin/tables/my_table.sql
+git commit -m "My table modifications"
+```
+
+#### 4. Stage and generate changesets
+Run `project stage` comparing your feature branch against the target branch (e.g. `develop` or `main`) to analyze changes and generate Liquibase changesets:
+```bash
+sql admin/Adb8b231bd598b31@myatp_medium
+project stage -branch-name develop
+```
+*This command will compare your branch against `develop`, identify modified objects, and create the corresponding Liquibase changesets under `dist/releases/next/`.*
+
+#### 5. Commit the generated changesets
+Commit the newly generated XML/SQL files in the `dist/` directory to Git:
+```bash
+git add dist/
+git commit -m "Stage changesets for release"
+```
+
+### Testing and Deployment
+To deploy the staged changesets onto another target database:
+```bash
+cd dist
+sql schema_user/password@connection_string @install.sql
+```
+This runs the Liquibase update. Liquibase scans the `DATABASECHANGELOG` table and executes only the new, unapplied changesets, completing the deployment in less than 1 second!
+
+---
+
+## Installing Future External Applications (e.g. Argus)
+
+This same project structure can be applied to any other database application in the future:
+1. Clone the application repository.
+2. Run `project init -name <app_name> -schemas <schemas_list>` to initialize settings.
+3. Commit `.dbtools/` and `.gitignore`.
+4. Stage all initial DDL files in `src/` to establish the baseline commit.
+5. Run `project stage -branch-name main` to generate baseline empty changelogs, commit the `dist/` directory, and begin incremental development.
+
