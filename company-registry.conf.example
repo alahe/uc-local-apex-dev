@@ -1,0 +1,27 @@
+# Company registry configuration
+# --------------------------------
+# Copy this file to company-registry.conf and fill in your organization's
+# actual internal registry/mirror details.
+#
+# This file is excluded from Git (.gitignore) because it contains
+# environment-specific / internal infrastructure details.
+#
+# Used by setup.sh, scripts/switch-image-source.sh, scripts/adb/start.sh,
+# and scripts/install-registry-ca.sh whenever IMAGE_SOURCE=company.
+
+# Internal registry hostname used for the DB, ORDS, and ADB Free images
+# (e.g. an Artifactory Docker virtual repo using the "subdomain method").
+COMPANY_IMAGE_REPO="<registry-host>"
+
+# Registry host:port used by install-registry-ca for the CA trust store.
+# Defaults to "$COMPANY_IMAGE_REPO:443" if left unset.
+#COMPANY_REGISTRY_HOST="<registry-host>:443"
+
+# ADB Free image path on the internal registry (usually unchanged).
+#COMPANY_ADB_IMAGE_PATH="database/adb-free"
+
+# Comma-separated list of "host:port" NTLM/Kerberos-authenticating proxies to
+# try (in order, after a direct no-proxy attempt) when scripts/adb/start.sh
+# pre-fetches the ADB Free seed PDB via Windows PowerShell on a corporate
+# network that blocks the direct download. Leave unset if not needed.
+#COMPANY_PROXY_HOSTS="proxy1.example.com:3128,proxy2.example.com:3128"

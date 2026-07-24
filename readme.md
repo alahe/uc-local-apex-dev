@@ -11,11 +11,13 @@ A containerized development environment (works with Docker, Podman, or any conta
 - **Docker or Podman** (or any docker-compatible container runtime)
   - Allocate at least **4 GB RAM** and **3 CPUs** to your VM. The default Podman VM is too small for Oracle — [learn more](https://hartenfeller.dev/blog/oracle-23ai-container-wont-start-mac)
   - `docker compose` or `podman-compose`
-- **SQLcl** with `sql` command in your PATH
+- **SQLcl** with `sql` command in your PATH (if missing, `install.sh` can auto-install it via `sqlv`)
 - **Bash-compatible shell** (on Windows, use WSL2)
 - **Optional**: [mkcert](https://github.com/FiloSottile/mkcert) for trusted HTTPS without browser warnings
 
 > **On Mac?** See [Podman on macOS](docs/src/content/docs/other/podman-on-mac.md) for VM setup instructions.
+
+> **On Windows?** Install [Podman Desktop](https://podman-desktop.io/) **first** (required). It bundles the Podman CLI and sets up the WSL2 machine automatically, which is by far the fastest way to get a working environment on Windows — install it before running WSL2/Ubuntu or any of the commands below.
 
 ## Quick Start
 
@@ -33,6 +35,81 @@ The install script will:
 3. Start the database and ORDS containers
 4. Install APEX (this takes the longest)
 5. Run post-install configuration
+
+You can switch image sources anytime:
+
+```bash
+./local-26ai.sh switch-image-source oracle
+./local-26ai.sh switch-image-source company
+```
+
+Profiles:
+
+- `oracle` -> `container-registry.oracle.com`
+- `company` -> your internal registry host, configured in `./company-registry.conf` (copy `company-registry.conf.example`)
+
+### ADB Free: one-command setup
+
+Prefer the lightweight Oracle ADB Free container instead of the full DB+ORDS+APEX stack? A single command
+starts Podman (initializing a machine if none exists yet), installs the local registry CA certificate if one
+is present under `.certs/`, switches the image source profile, and starts the container:
+
+```bash
+chmod +x ./local-26ai.sh ./scripts/*.sh ./scripts/adb/*.sh
+
+./local-26ai.sh adb/bootstrap            # use the current/default image source
+./local-26ai.sh adb/bootstrap oracle     # switch to the oracle profile, then start
+./local-26ai.sh adb/bootstrap company    # switch to the company mirror profile, then start
+./local-26ai.sh adb/bootstrap company --23ai   # switch profile + forward options to adb/start
+```
+
+Re-running it is safe — every step is a no-op once it's already satisfied. It does not automate a `podman
+login` when the mirror requires authentication (credentials are never handled by scripts) — run that once
+manually if needed.
+
+To check progress while the image pulls or the database initializes:
+
+```bash
+podman ps -a                      # is the container up yet?
+podman logs -f local-adb-free     # follow startup logs live
+```
+
+See [ADB Free: Checking status](docs/src/content/docs/getting-started/adb-free.md#checking-status) for details.
+
+For enterprise mirrors behind proxy/SSO, keep these extra local setup steps documented for the team:
+
+1. Recreate or initialize Podman machine with explicit host proxy variables when the machine image itself must be downloaded.
+2. Ensure `NO_PROXY` and `no_proxy` inside the Podman machine include your internal registry host (see `company-registry.conf`).
+3. Install the company registry CA certificate into the Podman machine under `/etc/containers/certs.d/<registry-host>/ca.crt` (`./local-26ai.sh adb/bootstrap` does this automatically when the certificate file is present under `.certs/`).
+4. Use Artifactory's Docker "Subdomain method" endpoint for mirrored images (the repo key as a hostname prefix), not the path-based `.../artifactory/api/docker/<repo-key>` URL - standard Docker/Podman clients always ping the bare registry root (`/v2/`) without any path, which the path-based method cannot route.
+5. If the registry requires authentication, run `podman login <registry-host>` before `adb/start`, `adb/bootstrap`, or `podman compose pull`.
+
+Practical local convention:
+
+- Copy `company-registry.conf.example` to `company-registry.conf` and fill in your registry host.
+- Store the certificate in `.certs/registry/company-ca.crt`.
+- Install it into the Podman machine with `./local-26ai.sh install-registry-ca`.
+
+What should stay out of the public repository:
+
+- Company CA certificate files
+- Internal usernames, tokens, passwords, or login commands with embedded credentials
+- Internal-only hostnames, proxy exceptions, or mirror paths if they are not approved for public disclosure
+
+Recommended split:
+
+- Keep the generic setup flow in this repository.
+- Keep company-specific values and step-by-step enterprise bootstrap instructions in a private company repository or internal wiki.
+- Use the sanitized template in [docs/src/content/docs/getting-started/enterprise-mirror-template.md](docs/src/content/docs/getting-started/enterprise-mirror-template.md) as the starting point for that private documentation.
+
+Enable local git hook checks (recommended for mixed Windows/macOS teams):
+
+```bash
+./local-26ai.sh install-git-hooks
+```
+
+This installs a local `pre-commit` hook that blocks commits when CRLF is detected
+in files that must be LF (`.sh`, `.yml`, `.env`, `.sql`, `.md`, ...).
 
 **Follow the progress in the logs:**
 
@@ -190,6 +267,14 @@ docker logs -f local-26ai-ords
 | [Install Apps or Scripts](docs/src/content/docs/getting-started/install-apps-scripts.md) | Test app installs |
 | [FAQ](docs/src/content/docs/other/faq.md) | Troubleshooting |
 | [Podman on macOS](docs/src/content/docs/other/podman-on-mac.md) | Podman VM setup |
+
+### For AI Coding Assistants
+
+This repo ships [`.agents/skills/`](.agents/skills/) — repo-specific knowledge files (conventions, gotchas,
+install workflows) that GitHub Copilot and other AI coding assistants can read automatically. See
+[`repo-conventions`](.agents/skills/repo-conventions/SKILL.md) for shell/container/docs pitfalls, and
+[`oracle-upstream-skills`](.agents/skills/oracle-upstream-skills/SKILL.md) for pointers to Oracle's own
+official SQLcl/ORDS/APEX/Database skills at [github.com/oracle/skills](https://github.com/oracle/skills).
 
 ## Contributing
 

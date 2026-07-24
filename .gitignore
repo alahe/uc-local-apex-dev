@@ -19,3 +19,5 @@ post-install.conf
 .env.adb
 .certs/
 logs/
+company-registry.conf
+jfrog-repo-request-oracle-software.md
