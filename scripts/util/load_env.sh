@@ -6,7 +6,10 @@ if [ ! -f .env ]; then
 fi
 
 # check if .env is in the current directory or in the parent directory
-export $(grep -v '^#' .env | xargs)
+# Strip any CRLF line endings first: a CRLF-tainted .env (e.g. edited on
+# Windows) leaves a trailing \r on every exported value, which can break
+# downstream tools that consume these vars.
+export $(grep -v '^#' .env | tr -d '\r' | xargs)
 
 echo "loaded .env file"
 

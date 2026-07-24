@@ -25,9 +25,11 @@ ERROR_LOG="$LOG_DIR/errors_${TIMESTAMP}.log"
 touch "$ERROR_LOG"
 
 # Source .env.adb
+# Strip any CRLF line endings first: a CRLF-tainted .env.adb (e.g. edited on
+# Windows) leaves a trailing \r on every sourced value.
 if [ -f "$PROJECT_DIR/.env.adb" ]; then
   # shellcheck disable=SC1091
-  . "$PROJECT_DIR/.env.adb"
+  . <(tr -d '\r' < "$PROJECT_DIR/.env.adb")
 else
   echo "ERROR: .env.adb not found. Start ADB Free first: ./local-26ai.sh adb/start"
   exit 1

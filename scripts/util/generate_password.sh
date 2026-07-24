@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
 generate_password() {
-  # Generate random string with base64
-  local base=$(openssl rand -base64 32)
+  # Generate random string with base64. Prefer openssl, but fall back to
+  # /dev/urandom + base64 (coreutils) on hosts where openssl isn't installed
+  # (e.g. minimal WSL distros without internet access to install it).
+  local base
+  if command -v openssl >/dev/null 2>&1; then
+    base=$(openssl rand -base64 32)
+  else
+    base=$(head -c 32 /dev/urandom | base64)
+  fi
 
   # Replace any special chars not in our allowed set
   # First remove all special chars
