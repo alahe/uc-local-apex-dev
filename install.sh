@@ -33,6 +33,78 @@ fail_resumable() {
   exit 1
 }
 
+auto_install_sqlcl_if_missing() {
+  if command -v sql &>/dev/null; then
+    return 0
+  fi
+
+  if [ "${AUTO_INSTALL_SQLCL:-true}" = "false" ]; then
+    echo "SQLcl not found and AUTO_INSTALL_SQLCL=false."
+    return 1
+  fi
+
+  echo "SQLcl not found on PATH. Attempting automatic install via sqlv ..."
+
+  if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
+    echo "Cannot auto-install SQLcl: neither curl nor wget is available."
+    return 1
+  fi
+
+  if [ -n "${SQLCL_DOWNLOAD_URL:-}" ]; then
+    echo "Installing SQLcl from SQLCL_DOWNLOAD_URL ..."
+    tmp_dir=$(mktemp -d)
+    zip_path="$tmp_dir/sqlcl.zip"
+
+    if command -v curl &>/dev/null; then
+      curl -fsSL "$SQLCL_DOWNLOAD_URL" -o "$zip_path"
+    else
+      wget -qO "$zip_path" "$SQLCL_DOWNLOAD_URL"
+    fi
+
+    install_root="$HOME/.local/sqlcl"
+    mkdir -p "$install_root"
+    unzip -q -o "$zip_path" -d "$install_root"
+
+    sql_bin=$(find "$install_root" -type f -path '*/bin/sql' | head -1 || true)
+    if [ -n "$sql_bin" ]; then
+      export PATH="$(dirname "$sql_bin"):$PATH"
+    fi
+
+    rm -rf "$tmp_dir"
+
+    if command -v sql &>/dev/null; then
+      echo "SQLcl installed successfully from SQLCL_DOWNLOAD_URL."
+      return 0
+    fi
+
+    echo "SQLcl download succeeded, but 'sql' was not found after extraction."
+    return 1
+  fi
+
+  if command -v curl &>/dev/null; then
+    curl -fsSL https://raw.githubusercontent.com/United-Codes/sqlv/main/install.sh | bash
+  else
+    wget -qO- https://raw.githubusercontent.com/United-Codes/sqlv/main/install.sh | bash
+  fi
+
+  export PATH="$HOME/sqlv/bin:$HOME/sqlv/current/bin:$PATH"
+
+  if ! command -v sqlv &>/dev/null; then
+    echo "sqlv install completed, but 'sqlv' command was not found on PATH."
+    return 1
+  fi
+
+  SQLCL_VERSION="${SQLCL_VERSION:-26.2.0}"
+  sqlv install "$SQLCL_VERSION"
+
+  if ! command -v sql &>/dev/null; then
+    echo "SQLcl installation finished, but 'sql' is still missing on PATH."
+    return 1
+  fi
+
+  echo "SQLcl installed successfully (version target: $SQLCL_VERSION)."
+}
+
 # ---------------------------------------------------------------------------
 # 1. Preflight checks
 # ---------------------------------------------------------------------------
@@ -40,7 +112,7 @@ banner "Preflight checks"
 
 MISSING=()
 
-for cmd in sql unzip; do
+for cmd in unzip; do
   if ! command -v "$cmd" &>/dev/null; then
     MISSING+=("$cmd")
   fi
@@ -48,6 +120,10 @@ done
 
 if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
   MISSING+=("curl or wget")
+fi
+
+if ! auto_install_sqlcl_if_missing; then
+  MISSING+=("sql (SQLcl)")
 fi
 
 # Detect container engine (honor a pre-set CONTAINER_CLI, else prefer docker, fall back to podman).
@@ -103,6 +179,9 @@ REQUIRED_ENV_KEYS=(
   DBHOST
   DBPORT
   FORCE_SECURE
+  IMAGE_SOURCE
+  DB_IMAGE_REPO
+  ORDS_IMAGE_REPO
 )
 
 if [ -f .env ]; then
@@ -126,6 +205,14 @@ else
   echo ".env not found — running setup.sh to generate configuration."
   ./setup.sh
 fi
+
+# Export .env values into this shell so later steps (e.g. the SQLcl
+# connection check below) can reference them directly. Strip CRLF first —
+# a Windows-edited .env leaves a trailing \r on every value otherwise.
+set -a
+# shellcheck disable=SC1090
+source <(tr -d '\r' <.env)
+set +a
 
 # ---------------------------------------------------------------------------
 # 3. Pull images
@@ -321,13 +408,47 @@ while (( SECONDS < deadline )); do
 done
 
 # ---------------------------------------------------------------------------
-# 11. Final summary
+# 11. Optionally enable HTTPS (self-signed certificate)
+# ---------------------------------------------------------------------------
+# FORCE_SECURE=true in .env opts into automatic HTTPS setup: generates a
+# self-signed certificate (scripts/create-self-signed-certificates.sh) and
+# restarts ORDS to pick it up. Leave FORCE_SECURE=false (default) to keep
+# using plain HTTP on port 8181; HTTPS on 8443 is always available once a
+# certificate exists, this step just automates creating one.
+if [ "$(printf '%s' "$FORCE_SECURE" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+  banner "FORCE_SECURE=true - generating self-signed HTTPS certificate"
+  if ./scripts/create-self-signed-certificates.sh; then
+    $DOCKER_COMPOSE restart ords-26ai
+    deadline=$((SECONDS + 180))
+    while (( SECONDS < deadline )); do
+      https=$($CONTAINER_CLI exec local-26ai-ords bash -c \
+        "curl -fskS -o /dev/null -w '%{http_code}' https://localhost:8443/ords/" 2>/dev/null || true)
+      case "$https" in
+      200 | 30[0-9])
+        echo "ORDS is back (HTTPS)."
+        break
+        ;;
+      esac
+      sleep 5
+    done
+  else
+    echo "WARNING: certificate setup failed; continuing with HTTP only." >&2
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 12. Final summary
 # ---------------------------------------------------------------------------
 banner "Done"
+if [ "$(printf '%s' "$FORCE_SECURE" | tr '[:upper:]' '[:lower:]')" = "true" ]; then
+  apex_url="https://localhost:8443/ords/"
+else
+  apex_url="http://localhost:8181/ords/"
+fi
 cat <<EOF
 The stack is up and APEX is installed.
 
-  APEX:           https://localhost:8181/ords/
+  APEX:           $apex_url
   APEX workspace: INTERNAL / ADMIN / (your ORACLE_PASSWORD from .env)
   SYS connection: sql -name "\$DB_CONN_NAME"   (after sourcing scripts/util/load_env.sh)
 
