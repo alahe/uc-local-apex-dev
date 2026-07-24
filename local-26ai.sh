@@ -19,6 +19,9 @@ print_help() {
   echo "Containers:"
   for cmd in start stop; do print_command "$cmd"; done
   echo
+  echo "ADB Free (one-command mirror-friendly setup):"
+  for cmd in adb/bootstrap adb/start adb/stop adb/clone; do print_command "$cmd"; done
+  echo
   echo "Users & Workspaces:"
   for cmd in create-user clear-schema drop-user; do print_command "$cmd"; done
   echo
@@ -32,7 +35,7 @@ print_help() {
   for cmd in used-space shrink-space compress-space; do print_command "$cmd"; done
   echo
   echo "Setup & Maintenance:"
-  for cmd in after-first-db-start upgrade-apex unexpire-accounts disable-password-expiration disable-archive-logs create-self-signed-certificates install-dbms-cloud; do print_command "$cmd"; done
+  for cmd in after-first-db-start upgrade-apex unexpire-accounts disable-password-expiration disable-archive-logs create-self-signed-certificates install-dbms-cloud install-registry-ca switch-image-source install-git-hooks; do print_command "$cmd"; done
   echo
   echo "Docs: https://www.united-codes.com/products/uc-local-apex-dev/docs/"
 }
