@@ -6,19 +6,43 @@ set -e
 source ./scripts/util/load_env.sh
 source ./scripts/util/get_ws_settings.sh
 
-echo "Downloading APEX"
-
 rm -rf ./apex || true
 rm -rf ./apex-images || true
 
 APEX_URL="https://download.oracle.com/otn_software/apex/apex-latest.zip"
-if command -v curl >/dev/null 2>&1; then
-  curl -fLO "$APEX_URL"
-elif command -v wget >/dev/null 2>&1; then
-  wget "$APEX_URL"
+# APEX_MIRROR_URL (optional, set in .env) points at a pre-uploaded copy of
+# apex-latest.zip on an internal artifact repository, so individual
+# developers don't need their own path to download.oracle.com (e.g. behind
+# a corporate proxy that blocks it). Falls back to the official Oracle URL
+# if the mirror is unset or the download from it fails.
+if [ -f ./apex-latest.zip ]; then
+  echo "Using pre-downloaded ./apex-latest.zip"
+elif [ -n "${APEX_MIRROR_URL:-}" ]; then
+  echo "Downloading APEX from internal mirror: $APEX_MIRROR_URL"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fLo apex-latest.zip "$APEX_MIRROR_URL" || {
+      echo "Warning: internal mirror download failed, falling back to $APEX_URL" >&2
+      curl -fLo apex-latest.zip "$APEX_URL"
+    }
+  elif command -v wget >/dev/null 2>&1; then
+    wget -O apex-latest.zip "$APEX_MIRROR_URL" || {
+      echo "Warning: internal mirror download failed, falling back to $APEX_URL" >&2
+      wget -O apex-latest.zip "$APEX_URL"
+    }
+  else
+    echo "Error: neither curl nor wget is installed. Please install one of them and re-run." >&2
+    exit 1
+  fi
 else
-  echo "Error: neither curl nor wget is installed. Please install one of them and re-run." >&2
-  exit 1
+  echo "Downloading APEX"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fLO "$APEX_URL"
+  elif command -v wget >/dev/null 2>&1; then
+    wget "$APEX_URL"
+  else
+    echo "Error: neither curl nor wget is installed. Please install one of them and re-run." >&2
+    exit 1
+  fi
 fi
 unzip apex-latest.zip
 rm apex-latest.zip

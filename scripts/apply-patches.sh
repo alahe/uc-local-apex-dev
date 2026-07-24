@@ -24,6 +24,36 @@ source ./scripts/util/load_env.sh
 PATCH_DIR="./apex-patches"
 
 # ---------------------------------------------------------------------------
+# Optional: fetch patch bundles from an internal mirror first
+# ---------------------------------------------------------------------------
+# Set APEX_PATCHES_MIRROR_URL (base URL of an internal artifact repository
+# folder, no trailing slash) and APEX_PATCHES_MANIFEST (comma-separated list
+# of the exact filenames uploaded there, e.g.
+# "p39179920_2610_Generic.zip,p39355255_2610_Generic.zip") in .env to have
+# missing patch bundles fetched automatically instead of everyone downloading
+# them from My Oracle Support by hand. Any file already present locally is
+# left untouched. Both variables are optional — leave unset to keep the
+# existing manual "drop the zip in apex-patches/" workflow.
+if [ -n "${APEX_PATCHES_MIRROR_URL:-}" ] && [ -n "${APEX_PATCHES_MANIFEST:-}" ]; then
+  mkdir -p "$PATCH_DIR"
+  IFS=',' read -ra MANIFEST_FILES <<<"$APEX_PATCHES_MANIFEST"
+  for fname in "${MANIFEST_FILES[@]}"; do
+    fname=$(echo "$fname" | xargs) # trim whitespace
+    [ -z "$fname" ] && continue
+    dest="$PATCH_DIR/$fname"
+    if [ -f "$dest" ]; then
+      continue
+    fi
+    echo "Fetching $fname from internal mirror..."
+    if command -v curl >/dev/null 2>&1; then
+      curl -fLo "$dest" "$APEX_PATCHES_MIRROR_URL/$fname" || echo "  WARNING: failed to fetch $fname from mirror" >&2
+    elif command -v wget >/dev/null 2>&1; then
+      wget -O "$dest" "$APEX_PATCHES_MIRROR_URL/$fname" || echo "  WARNING: failed to fetch $fname from mirror" >&2
+    fi
+  done
+fi
+
+# ---------------------------------------------------------------------------
 # Preflight
 # ---------------------------------------------------------------------------
 if [ ! -d "$PATCH_DIR" ]; then

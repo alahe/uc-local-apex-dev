@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# desc: Create self-signed SSL certificates so ORDS serves HTTPS (run with sudo)
+# desc: Create self-signed SSL certificates so ORDS serves HTTPS
 
 set -e
 
@@ -8,33 +8,30 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
-# Function to check if script is run with sudo/root privileges
-check_root() {
-  if [ "$EUID" -ne 0 ]; then
-    echo "Please run this script with sudo or as root"
-    exit 1
-  fi
+is_wsl() {
+  [ -n "${WSL_DISTRO_NAME:-}" ] || grep -qi microsoft /proc/version 2>/dev/null
 }
 
-check_root
+mkdir -p ./ssl/ ./ords-config/ssl/
 
 echo "Generating certificates..."
 
-openssl req -x509 -out cert.crt -keyout key.key -days 9999 \
-  -newkey rsa:2048 -nodes -sha256 \
-  -subj '/CN=localhost' -extensions EXT -config <(
-    printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth"
-  )
-
-if [ $? -ne 0 ]; then
-  echo "Certificate generation failed"
+CA_FILE=""
+if command_exists openssl; then
+  openssl req -x509 -out ./ssl/cert.crt -keyout ./ssl/key.key -days 9999 \
+    -newkey rsa:2048 -nodes -sha256 \
+    -subj '/CN=localhost' -extensions EXT -config <(
+      printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost,IP:127.0.0.1\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth"
+    )
+elif command_exists mkcert; then
+  echo "openssl not found - using mkcert instead."
+  mkcert -install >/dev/null 2>&1 || true
+  mkcert -cert-file ./ssl/cert.crt -key-file ./ssl/key.key localhost 127.0.0.1 ::1
+  CA_FILE="$(mkcert -CAROOT)/rootCA.pem"
+else
+  echo "ERROR: neither openssl nor mkcert is available. Install one of them and re-run." >&2
   exit 1
 fi
-
-mkdir -p ./ssl/ || true
-
-mv cert.crt ./ssl/cert.crt
-mv key.key ./ssl/key.key
 
 echo "Successfully generated certificates"
 echo "  - Certificate: ./ssl/cert.crt"
@@ -43,16 +40,44 @@ echo "  - Private key: ./ssl/key.key"
 chmod 644 ./ssl/key.key
 chmod 644 ./ssl/cert.crt
 
-mkdir -p ./ords-config/ssl/ || true
 cp -f ./ssl/cert.crt ./ords-config/ssl/
 cp -f ./ssl/key.key ./ords-config/ssl/
 
 echo "Successfully copied certificates to ORDS config directory. Restart ORDS to apply changes."
 
-# Detect OS and install certificate
+# ---------------------------------------------------------------------------
+# Trust the certificate so browsers don't show a warning
+# ---------------------------------------------------------------------------
+if is_wsl; then
+  echo "Detected WSL - trusting the certificate on the Windows host (not the WSL distro itself)."
+  TRUST_FILE="${CA_FILE:-./ssl/cert.crt}"
+  if command_exists powershell.exe && command_exists wslpath; then
+    WIN_PATH=$(wslpath -w "$(readlink -f "$TRUST_FILE")" 2>/dev/null || true)
+    if [ -n "$WIN_PATH" ] && powershell.exe -NoProfile -Command \
+      "Import-Certificate -FilePath '$WIN_PATH' -CertStoreLocation Cert:\\CurrentUser\\Root" >/dev/null 2>&1; then
+      echo "Trusted the certificate in the Windows current-user certificate store (no admin rights needed)."
+    else
+      echo "Could not import the certificate automatically. To trust it manually, run in Windows PowerShell:"
+      echo "  Import-Certificate -FilePath '$WIN_PATH' -CertStoreLocation Cert:\\CurrentUser\\Root"
+    fi
+  else
+    echo "No Windows interop (powershell.exe) available from this WSL distro."
+    echo "To trust it manually, copy $TRUST_FILE to Windows and in PowerShell run:"
+    echo "  Import-Certificate -FilePath '<path-to-file>' -CertStoreLocation Cert:\\CurrentUser\\Root"
+  fi
+  exit 0
+fi
+
+# Detect OS and install certificate (non-WSL Linux/macOS)
 OS=$(uname -s)
 case "$OS" in
 Linux*)
+  if [ "$EUID" -ne 0 ]; then
+    echo "Skipping system trust-store install (not running as root)."
+    echo "Re-run with sudo to also trust ./ssl/cert.crt system-wide, or import it manually."
+    exit 0
+  fi
+
   echo "Detected Linux OS"
   echo "  - Installing certificate to system trust store"
 
@@ -101,5 +126,5 @@ Darwin*)
 esac
 
 echo "Successfully installed certificate to system trust store"
-echo "Please restart ORDS to apply changes: $DOCKER_COMPOSE restart ords"
-echo "Only access ORDS via HTTPS: https://localhost:8181/ords/_/landing"
+echo "Please restart ORDS to apply changes: $DOCKER_COMPOSE restart ords-26ai"
+echo "Access ORDS via HTTPS: https://localhost:8443/ords/_/landing"
