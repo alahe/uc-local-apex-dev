@@ -26,6 +26,9 @@ local-26ai.sh start
 # docker compose start  (or: podman compose start)
 ```
 
+Not sure if a container is healthy, or want to see its logs and live resource usage? See
+[Monitoring Container Resource Usage](/products/uc-local-apex-dev/docs/other/monitoring-resources/).
+
 ## ORDS Configuration
 
 ### Modify ORDS Settings
@@ -39,14 +42,21 @@ docker compose restart ords-26ai   # or: podman compose restart ords-26ai
 
 ### SSL Configuration
 
-Enable HTTPS for ORDS by creating self-signed certificates. On MacOS and Linux it will also add the certificate to your system's keychain:
+Enable HTTPS for ORDS by creating self-signed certificates:
 
 ```bash
-sudo ./scripts/create-self-signed-certificates.sh
+./scripts/create-self-signed-certificates.sh
 docker compose restart ords-26ai   # or: podman compose restart ords-26ai
 ```
 
+- Uses `openssl` if available, otherwise falls back to [`mkcert`](https://github.com/FiloSottile/mkcert).
+- On Linux (non-WSL) run it with `sudo` to also trust the certificate system-wide; on macOS it's added to the login keychain.
+- On WSL, the certificate is trusted automatically in the **Windows** current-user certificate store (via `powershell.exe`/`Import-Certificate`, no admin rights needed) instead of the WSL distro's own (irrelevant) trust store.
+
+Set `FORCE_SECURE="true"` in `.env` before running `./install.sh` to have this happen automatically as part of the install.
+
 Access via: https://localhost:8443/ords (Port 8443 instead of 8181).
+
 
 ## Maintenance Tasks
 

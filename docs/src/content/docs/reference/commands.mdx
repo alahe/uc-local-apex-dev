@@ -27,6 +27,17 @@ local-26ai.sh <command> [arguments]
 
 See [Common Tasks → Managing Containers](/products/uc-local-apex-dev/docs/getting-started/common-tasks/#managing-containers).
 
+## ADB Free (one-command mirror-friendly setup)
+
+| Command | Description |
+| ------- | ----------- |
+| `adb/bootstrap [oracle\|company] [-- <adb/start args>]` | One command that ensures Podman is running, installs the registry CA if present, switches the image source profile, and starts ADB Free. Safe to re-run. |
+| `adb/start [--19c\|--23ai\|--26ai\|--tag <tag>]` | Start the Oracle ADB Free container (oracle or company mirror), generating `.env.adb` on first run. |
+| `adb/stop` | Stop the ADB Free container/stack. |
+| `adb/clone <branch> [--stop\|--remove]` | Clone the ADB Free data volume into a second, independently runnable branch container with its own ports. |
+
+See [ADB Free](/products/uc-local-apex-dev/docs/getting-started/adb-free/) and [Architecture Overview](/products/uc-local-apex-dev/docs/reference/architecture/).
+
 ## Users & Workspaces
 
 | Command | Description |
@@ -79,7 +90,10 @@ See [Common Tasks → Maintenance Tasks](/products/uc-local-apex-dev/docs/gettin
 | `unexpire-accounts` | Unlock and unexpire APEX/ORDS accounts — the fix for "Account Is Locked" messages. |
 | `disable-password-expiration` | Stop database account passwords from expiring in the future. |
 | `disable-archive-logs` | Disable archive logging to save disk space (recommended for dev). |
-| `create-self-signed-certificates` | Create self-signed SSL certificates so ORDS serves HTTPS on port 8443. Run with `sudo`. |
+| `create-self-signed-certificates` | Generate a self-signed SSL certificate for ORDS (HTTPS on port 8443), using `openssl` or falling back to `mkcert`. No `sudo` required; on WSL it also imports the certificate into the Windows trust store. Runs automatically during `install.sh` when `FORCE_SECURE="true"`. |
 | `install-dbms-cloud` | Install the `DBMS_CLOUD` package into the database. |
+| `install-registry-ca` | Install a company/internal registry's CA certificate into the Podman machine's trust store, if present under `.certs/`. |
+| `switch-image-source <oracle\|company>` | Switch the image source profile for DB, ORDS, and ADB between the public Oracle registry and an internal/company mirror. |
+| `install-git-hooks` | Install the repository's local git hooks (pre-commit LF/CRLF validation). |
 
-See [Upgrade APEX](/products/uc-local-apex-dev/docs/migrations/upgrade-apex/) and [Common Tasks](/products/uc-local-apex-dev/docs/getting-started/common-tasks/).
+See [Upgrade APEX](/products/uc-local-apex-dev/docs/migrations/upgrade-apex/), [Common Tasks](/products/uc-local-apex-dev/docs/getting-started/common-tasks/), and [Enterprise Mirror Setup Template](/products/uc-local-apex-dev/docs/getting-started/enterprise-mirror-template/).

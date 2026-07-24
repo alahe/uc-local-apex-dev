@@ -2,6 +2,7 @@
 import { unified } from "@astrojs/markdown-remark";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import mermaid from "astro-mermaid";
 import starlightImageZoom from "starlight-image-zoom";
 import starlightLinksValidator from "starlight-links-validator";
 
@@ -16,10 +17,30 @@ export default defineConfig({
 		processor: unified(),
 	},
 	integrations: [
+		// Must come before starlight() so its markdown transform is registered first.
+		mermaid({
+			theme: "neutral",
+			autoTheme: true,
+		}),
 		starlight({
 			title: "uc-local-apex-dev",
 			logo: {
 				src: "./src/assets/logo/logo-horizontal-primary-dark.svg",
+			},
+			// "root" keeps the existing English content at the top of src/content/docs/
+			// (no /en/ prefix, no files moved). Other locales live in their own
+			// subfolder, e.g. src/content/docs/et/. Pages missing from a locale
+			// automatically fall back to the root (English) version.
+			defaultLocale: "root",
+			locales: {
+				root: {
+					label: "English",
+					lang: "en",
+				},
+				et: {
+					label: "Eesti",
+					lang: "et",
+				},
 			},
 			social: [
 				{
@@ -55,7 +76,11 @@ export default defineConfig({
 				},
 				{
 					label: "Getting Started",
-					items: ["getting-started", "other/podman-on-mac"],
+					items: [
+						"getting-started/onboarding",
+						"getting-started",
+						"other/podman-on-mac",
+					],
 				},
 				{
 					label: "Guides",
@@ -65,11 +90,12 @@ export default defineConfig({
 						"getting-started/plsql-debugging",
 						"getting-started/install-apps-scripts",
 						"getting-started/common-tasks",
+						"getting-started/post-install",
 					],
 				},
 				{
 					label: "Reference",
-					items: ["reference/commands"],
+					items: ["reference/commands", "reference/architecture"],
 				},
 				{
 					label: "Migrations",
@@ -77,7 +103,7 @@ export default defineConfig({
 				},
 				{
 					label: "Other",
-					items: ["other/faq"],
+					items: ["other/monitoring-resources", "other/faq"],
 				},
 			],
 			customCss: ["./src/styles/uc.css"],
