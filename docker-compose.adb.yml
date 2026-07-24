@@ -1,9 +1,10 @@
 name: uc-local-apex-dev-adb
 services:
   adb-free:
-    image: ${ADB_IMAGE_REPO:-ghcr.io}/oracle/adb-free:${ADB_IMAGE_TAG:-latest-26ai}
+    image: ${ADB_IMAGE_REPO}/${ADB_IMAGE_PATH:-database/adb-free}:${ADB_IMAGE_TAG:-latest-26ai}
 
     container_name: local-adb-free
+    hostname: adbfree
     ports:
       - "1521:1522"     # TLS
       - "1522:1522"     # mTLS
