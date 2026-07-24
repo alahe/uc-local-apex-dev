@@ -1,0 +1,28 @@
+# Normalize line endings consistently across platforms.
+* text=auto
+
+# Shell and Unix-oriented files must stay LF (critical for bash scripts).
+*.sh text eol=lf
+*.bash text eol=lf
+*.env text eol=lf
+.env.* text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+
+# Windows-native scripts can use CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Common binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.zip binary
+*.jar binary
+*.pdf binary

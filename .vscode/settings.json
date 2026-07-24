@@ -1,0 +1,9 @@
+{
+    "terminal.integrated.profiles.windows": {
+        "WSL (podman-machine-default)": {
+            "path": "wsl.exe",
+            "args": ["-d", "podman-machine-default"]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "WSL (podman-machine-default)"
+}

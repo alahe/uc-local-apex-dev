@@ -1,0 +1,40 @@
+name: Check Line Endings
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  check-line-endings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enforce LF for text files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t files < <(git ls-files '*.sh' '*.bash' '*.env' '*.env.*' '*.yml' '*.yaml' '*.md' '*.sql')
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No matching files found."
+            exit 0
+          fi
+
+          bad=0
+          for f in "${files[@]}"; do
+            if LC_ALL=C grep -n $'\r' "$f" > /tmp/crlf_hits.txt; then
+              echo "::error file=$f::CRLF detected. Use LF line endings."
+              head -5 /tmp/crlf_hits.txt | sed 's/^/  /'
+              bad=1
+            fi
+          done
+
+          if [ "$bad" -ne 0 ]; then
+            echo "Line-ending check failed. Convert files to LF and commit again."
+            exit 1
+          fi
+
+          echo "Line-ending check passed."

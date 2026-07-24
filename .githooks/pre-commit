@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Check only staged files that are relevant for LF enforcement.
+mapfile -t staged_files < <(git diff --cached --name-only --diff-filter=ACM)
+
+if [ ${#staged_files[@]} -eq 0 ]; then
+  exit 0
+fi
+
+matches_lf_policy() {
+  case "$1" in
+    *.sh|*.bash|*.env|*.env.*|*.yml|*.yaml|*.md|*.sql|Dockerfile)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+bad=0
+for f in "${staged_files[@]}"; do
+  if ! matches_lf_policy "$f"; then
+    continue
+  fi
+
+  # Skip deleted/renamed paths that are no longer present in worktree.
+  if [ ! -f "$f" ]; then
+    continue
+  fi
+
+  if LC_ALL=C grep -n $'\r' "$f" >/tmp/uc_local_apex_crlf_hits.txt; then
+    echo "ERROR: CRLF detected in $f (must be LF)."
+    head -5 /tmp/uc_local_apex_crlf_hits.txt | sed 's/^/  /'
+    bad=1
+  fi
+done
+
+rm -f /tmp/uc_local_apex_crlf_hits.txt
+
+if [ "$bad" -ne 0 ]; then
+  echo
+  echo "Commit blocked due to CRLF line endings."
+  echo "Fix suggestion: run 'git add --renormalize .' and re-stage files."
+  exit 1
+fi
+
+exit 0
